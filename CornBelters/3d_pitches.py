@@ -18,6 +18,11 @@ def df_grouping(df: pd.DataFrame):
         'PlateLocSide': 'plate_x',
         'PlateLocHeight': 'plate_z'
     })
+    pitch_counts = df['pitch_type'].value_counts()
+    valid_pitches = pitch_counts[pitch_counts > 5].index
+
+# Filter DataFrame to keep only pitches thrown more than 5 times
+    df = df[df['pitch_type'].isin(valid_pitches)]   
 
     # Define pitch type mapping
     pitch_mapping = {
@@ -30,7 +35,7 @@ def df_grouping(df: pd.DataFrame):
         'Cutter': 'CUTTER'
     }
     df['pitch_type'] = df['pitch_type'].map(pitch_mapping).fillna(df['pitch_type'])
-
+    
     # Map pitch types to colors
     dict_colour = {
         '4-SEAM FASTBALL': 'pink',
@@ -130,10 +135,12 @@ def plot_3d_pitch_track(df: pd.DataFrame, pitcher_name: str):
     ax.legend(by_label.values(), by_label.keys())
 
     # Save and close
-    plt.savefig(f"{pitcher_name.replace(', ', '_')}_3d_avg_pitch_track.png", bbox_inches='tight', dpi=500)
+    plt.savefig(f"CornBelters/3d/{pitcher_name.replace(', ', '_')}_3d_avg_pitch_track.png", bbox_inches='tight', dpi=500)
     plt.close()
 
 # Main execution
+
+# Define dtypes
 dtypes = {
     'Pitcher': str,
     'PitcherTeam': str,
@@ -149,20 +156,45 @@ dtypes = {
     'PlateLocHeight': float
 }
 
+# Read CSV
+data_path = 'CornBelters/Data/BeesBelters5-28.csv'
 try:
-    df = pd.read_csv('2025.csv', dtype=dtypes, low_memory=False)
+    df = pd.read_csv(data_path, dtype=dtypes)
 except ValueError as e:
-    print(f"Error reading CSV: {e}")
-    df = pd.read_csv('2025.csv', low_memory=False)
+    print(f"Error reading CSV with specified dtypes: {e}")
+    print("Falling back to low_memory=False")
+    df = pd.read_csv(data_path, low_memory=False)
 
-pitcher_name = 'Chadwick, Tyrelle'
-pitcher_data = df[(df['PitcherTeam'] == 'ILL_RED') & (df['Pitcher'] == pitcher_name)]
+# Convert Date to datetime
+df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
-if pitcher_data.empty:
-    print(f"No data found for {pitcher_name} from ILL_RED")
-else:
-    # Process data
-    pitcher_data = df_grouping(pitcher_data)
+# Extract unique pitchers and their most recent team
+pitcher_teams = (df.sort_values('Date', ascending=False)
+                 .groupby('Pitcher')
+                 .agg({'PitcherTeam': 'first'})
+                 .reset_index())
+pitcher_teams.columns = ['Pitcher', 'PitcherTeam']
+
+# Loop through each pitcher
+for _, row in pitcher_teams.iterrows():
+    pitcher_name = row['Pitcher']
+    team = row['PitcherTeam']
     
-    # Generate 3D pitch track with averages
-    plot_3d_pitch_track(pitcher_data, pitcher_name)
+    # Filter DataFrame for the current pitcher and team
+    pitcher_data = df[(df['Pitcher'] == pitcher_name) & (df['PitcherTeam'] == team)]
+    
+    if pitcher_data.empty:
+        print(f"No data found for {pitcher_name} from {team}")
+        continue
+    
+    try:
+        # Process data using df_grouping
+        processed_data = df_grouping(pitcher_data)
+        
+        # Generate 3D pitch track with averages
+        plot_3d_pitch_track(processed_data, pitcher_name)
+        print(f"3D pitch track generated for {pitcher_name} ({team})")
+    except Exception as e:
+        print(f"Error generating 3D pitch track for {pitcher_name}: {e}")
+
+print("All 3D pitch tracks generated.")
