@@ -19,7 +19,7 @@ def df_grouping(df: pd.DataFrame):
         'PlateLocHeight': 'plate_z'
     })
     pitch_counts = df['pitch_type'].value_counts()
-    valid_pitches = pitch_counts[pitch_counts > 5].index
+    valid_pitches = pitch_counts[pitch_counts > 3].index
 
 # Filter DataFrame to keep only pitches thrown more than 5 times
     df = df[df['pitch_type'].isin(valid_pitches)]   
@@ -157,7 +157,7 @@ dtypes = {
 }
 
 # Read CSV
-data_path = 'CornBelters/Data/BeesBelters5-28.csv'
+data_path = 'CornBelters/Data/modified_yakkertech_file.csv'
 try:
     df = pd.read_csv(data_path, dtype=dtypes)
 except ValueError as e:

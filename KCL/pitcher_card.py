@@ -192,7 +192,8 @@ def break_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str):
         'HorzBreak': 'pfx_x',
         'InducedVertBreak': 'pfx_z',
         'TaggedPitchType': 'pitch_type',
-        'PitcherThrows': 'p_throws'
+        'PitcherThrows': 'p_throws',
+        'VerticleArmAngle' : 'arm_angle'
     })
 
     pitch_mapping = {
@@ -547,7 +548,8 @@ dtypes = {
     'PlateLocHeight': float,
     'OutsOnPlay': float,
     'RunsScored': float,
-    'KorBB': str
+    'KorBB': str,
+    'VerticleArmAngle': float
 }
 
 try:
