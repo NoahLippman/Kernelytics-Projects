@@ -135,7 +135,7 @@ def plot_3d_pitch_track(df: pd.DataFrame, pitcher_name: str):
     ax.legend(by_label.values(), by_label.keys())
 
     # Save and close
-    plt.savefig(f"CornBelters/3d/6-1/{pitcher_name.replace(', ', '_')}_3d_avg_pitch_track.png", bbox_inches='tight', dpi=500)
+    plt.savefig(f"CornBelters/3d/6-3/{pitcher_name.replace(', ', '_')}_3d_avg_pitch_track.png", bbox_inches='tight', dpi=500)
     plt.close()
 
 # Main execution
@@ -157,7 +157,7 @@ dtypes = {
 }
 
 # Read CSV
-data_path = 'CornBelters/Data/CornBeltersAviators6-3.csv'
+data_path = 'Cornbelters/Data/BeltersAviators6-3.csv'
 try:
     df = pd.read_csv(data_path, dtype=dtypes)
 except ValueError as e:
