@@ -157,7 +157,7 @@ dtypes = {
 }
 
 # Read CSV
-data_path = 'CornBelters/Data/BeltersDans6-1.csv'
+data_path = 'CornBelters/Data/CornBeltersAviators6-3.csv'
 try:
     df = pd.read_csv(data_path, dtype=dtypes)
 except ValueError as e:
