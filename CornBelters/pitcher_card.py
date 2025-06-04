@@ -535,13 +535,13 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./CornBelters/Cards/5-29/{pitcher_name.replace(', ', '_')}_pitching_dashboard.png"
+    filename = f"./CornBelters/Cards/6-3/{pitcher_name.replace(', ', '_')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'CornBelters/Data/BeltersBees5-29.csv'
+data_path = 'CornBelters/Data/BeltersAviators6-3.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 
