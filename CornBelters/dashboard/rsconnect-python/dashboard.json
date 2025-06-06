@@ -1,0 +1,12 @@
+{
+    "https://api.shinyapps.io": {
+        "server_url": "https://api.shinyapps.io",
+        "filename": "C:\\Users\\maxim\\Desktop\\Kernelytics-Projects\\CornBelters\\dashboard",
+        "app_url": "https://maxquirk.shinyapps.io/pitching_dashboard/",
+        "app_id": 14887861,
+        "app_guid": null,
+        "title": "pitcher_dashboard",
+        "app_mode": "python-shiny",
+        "app_store_version": 1
+    }
+}
