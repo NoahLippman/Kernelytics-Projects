@@ -112,6 +112,21 @@ app_ui = ui.page_fluid(
         ),
         style="max-width: 800px; margin: 20px auto; display: block !important; visibility: visible !important;"
     ),
+    ui.card(
+        ui.card_header("Velocity Plot"),
+        ui.output_image("image_output1"),
+        ui.output_text("error_message1"),
+        ui.card_footer(
+            ui.download_button(
+                "download_img1",
+                "Download Velocity Plot",
+                class_="btn-primary",
+                style="width: 100%;"
+            )
+        ),
+        style="max-width: 800px; margin: 20px auto; display: block !important; visibility: visible !important;"
+    ),
+    
     ui.include_css(here / "styles.css") if (here / "styles.css").exists() else ui.tags.style("""
         body {
             background-color: #f5f5f5;
@@ -198,16 +213,11 @@ def server(input, output, session):
             with NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
                 tmp_path = tmp_file.name
                 pitching_dashboard(pitcher_df, stats, pitcher_name, team, season, date)
-                plot_pitch_velocity_with_line(pitcher_name, data_path=data_path)
-                pitch_types = pitcher_df['TaggedPitchType'].unique()
-                pitcher_card = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
-                for pitch_type in pitch_types:
-                    velocity_card = here / f"CornBelters/velocity/{pitcher_name}_{pitch_type}_velocity_with_line.png".format(pitch_type)
-                
-                if pitcher_card.exists() and velocity_card.exists():
+
+                generated_path = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
+                if generated_path.exists():
                     return {
-                        "src": str(pitcher_card,velocity_card),
-                        "style": "display: block; margin: 0 auto;",
+                        "src": str(generated_path),
                         "width": "100%",
                         "height": "auto",
                         "alt": f"{pitcher_name} dashboard for {date}"
@@ -244,8 +254,8 @@ def server(input, output, session):
         
         if pitcher_df.empty:
             return "No data found for the selected pitcher and date."
-        pitcher_card = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
-        return "" if pitcher_card.exists() else "Failed to generate dashboard. Please try again."
+        generated_path = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
+        return "" if generated_path.exists() else "Failed to generate dashboard. Please try again."
 
     @render.download(
         filename=lambda: f"{input.pitcher_name().strip()}_dashboard_{input.date()}.png"
@@ -255,9 +265,99 @@ def server(input, output, session):
         date = input.date()
         if not pitcher_name or not date:
             return
-        pitcher_card = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
-        if pitcher_card.exists():
-            with open(pitcher_card, "rb") as f:
+        generated_path = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
+        if generated_path.exists():
+            with open(generated_path, "rb") as f:
+                yield f.read()
+
+    @render.image
+    def image_output1():
+        pitcher_name = input.pitcher_name().strip()
+        date = input.date()
+        if not pitcher_name or not date:
+            return None
+
+        team = pitcher_team_map.get(pitcher_name, "")
+        if not team:
+            return None
+
+        season = 2025
+        
+        if date == "ALL":
+            # Filter for all dates for the pitcher
+            pitcher_df = df[(df['Pitcher'] == pitcher_name) & (df['PitcherTeam'] == team)]
+        else:
+            # Convert date from MM-DD to MM/DD/YYYY for filtering
+            try:
+                full_date = pd.to_datetime(f"2025-{date}", format="%Y-%m-%d").strftime("%m/%d/%Y")
+            except ValueError:
+                return None
+            pitcher_df = df[(df['Pitcher'] == pitcher_name) &
+                            (df['PitcherTeam'] == team) &
+                            (df['Date'].dt.strftime('%m/%d/%Y') == full_date)]
+
+        if pitcher_df.empty:
+            return None
+
+        try:
+            with NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                tmp_path = tmp_file.name
+                plot_pitch_velocity_with_line(pitcher_name, pitcher_df,date)
+
+                generated_path = here / f"CornBelters/velocity/{date}/{pitcher_name}_Fastball_velocity_with_line.png"
+                if generated_path.exists():
+                    return {
+                        "src": str(generated_path),
+                        "width": "100%",
+                        "height": "auto",
+                        "alt": f"{pitcher_name} velocity chart for {date}"
+                    }
+                else:
+                    return None
+        except Exception as e:
+            print(f"Error generating pitching velocity chart for {pitcher_name} on {date}: {e}")
+            return None
+        finally:
+            if 'tmp_path' in locals() and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    @render.text
+    def error_message1():
+        pitcher_name = input.pitcher_name().strip()
+        date = input.date()
+        if not pitcher_name or not date:
+            return "Please select a pitcher and date."
+        team = pitcher_team_map.get(pitcher_name, "")
+        if not team:
+            return "No team found for the selected pitcher."
+        
+        if date == "ALL":
+            pitcher_df = df[(df['Pitcher'] == pitcher_name) & (df['PitcherTeam'] == team)]
+        else:
+            try:
+                full_date = pd.to_datetime(f"2025-{date}", format="%Y-%m-%d").strftime("%m/%d/%Y")
+            except ValueError:
+                return "Invalid date format."
+            pitcher_df = df[(df['Pitcher'] == pitcher_name) &
+                            (df['PitcherTeam'] == team) &
+                            (df['Date'].dt.strftime('%m/%d/%Y') == full_date)]
+        
+        if pitcher_df.empty:
+            return "No data found for the selected pitcher and date."
+        generated_path = here / f"CornBelters/velocity/{date}/{pitcher_name}_Fastball_velocity_with_line.png"
+        return "" if generated_path.exists() else "Failed to generate velocity chart. Please try again."
+
+    @render.download(
+        filename=lambda: f"{input.pitcher_name().strip()}_dashboard_{input.date()}.png"
+    )
+    def download_img1():
+        pitcher_name = input.pitcher_name().strip()
+        date = input.date()
+        if not pitcher_name or not date:
+            return
+        generated_path = here / f"CornBelters/velocity/{date}/{pitcher_name}_Fastball_velocity_with_line.png"
+        if generated_path.exists():
+            with open(generated_path, "rb") as f:
                 yield f.read()
 
 app = App(app_ui, server)

@@ -2,12 +2,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_pitch_velocity_with_line(pitcher_name, data_path='your_data.csv'):
+def plot_pitch_velocity_with_line(pitcher_name, df,date):
     # Load the dataset
-    data = pd.read_csv(data_path)
+    
     
     # Filter data for the specified pitcher
-    pitcher_data = data[data['Pitcher'] == pitcher_name]
+    pitcher_data = df[df['Pitcher'] == pitcher_name]
     
     if pitcher_data.empty:
         print(f"No data found for pitcher: {pitcher_name}")
@@ -74,6 +74,5 @@ def plot_pitch_velocity_with_line(pitcher_name, data_path='your_data.csv'):
         plt.ylim(min(pitch_type_data['RelSpeed']) - 2, max(pitch_type_data['RelSpeed']) + 2)
         
         # Save the plot
-        plt.savefig(f'CornBelters/velocity/{pitcher_name}_{pitch_type}_velocity_with_line.png', dpi=300, bbox_inches='tight')
-        plt.show()
+        plt.savefig(f'CornBelters/velocity/{date}/{pitcher_name}_{pitch_type}_velocity_with_line.png', dpi=300, bbox_inches='tight')
         plt.close()
