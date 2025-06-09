@@ -4,6 +4,7 @@ import pandas as pd
 from tempfile import NamedTemporaryFile
 import os
 from pitcher_card import pitching_dashboard
+from pitcher_scripts import plot_pitch_velocity_with_line
 
 here = Path(__file__).parent
 data_path = here / "Data/2025.csv"
@@ -197,10 +198,16 @@ def server(input, output, session):
             with NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
                 tmp_path = tmp_file.name
                 pitching_dashboard(pitcher_df, stats, pitcher_name, team, season, date)
-                generated_path = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
-                if generated_path.exists():
+                plot_pitch_velocity_with_line(pitcher_name, data_path=data_path)
+                pitch_types = pitcher_df['TaggedPitchType'].unique()
+                pitcher_card = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
+                for pitch_type in pitch_types:
+                    velocity_card = here / f"CornBelters/velocity/{pitcher_name}_{pitch_type}_velocity_with_line.png".format(pitch_type)
+                
+                if pitcher_card.exists() and velocity_card.exists():
                     return {
-                        "src": str(generated_path),
+                        "src": str(pitcher_card,velocity_card),
+                        "style": "display: block; margin: 0 auto;",
                         "width": "100%",
                         "height": "auto",
                         "alt": f"{pitcher_name} dashboard for {date}"
@@ -237,8 +244,8 @@ def server(input, output, session):
         
         if pitcher_df.empty:
             return "No data found for the selected pitcher and date."
-        generated_path = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
-        return "" if generated_path.exists() else "Failed to generate dashboard. Please try again."
+        pitcher_card = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
+        return "" if pitcher_card.exists() else "Failed to generate dashboard. Please try again."
 
     @render.download(
         filename=lambda: f"{input.pitcher_name().strip()}_dashboard_{input.date()}.png"
@@ -248,9 +255,9 @@ def server(input, output, session):
         date = input.date()
         if not pitcher_name or not date:
             return
-        generated_path = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
-        if generated_path.exists():
-            with open(generated_path, "rb") as f:
+        pitcher_card = here / f"CornBelters/Cards/{date}/{pitcher_name.replace(', ', '_')}_pitching.png"
+        if pitcher_card.exists():
+            with open(pitcher_card, "rb") as f:
                 yield f.read()
 
 app = App(app_ui, server)
