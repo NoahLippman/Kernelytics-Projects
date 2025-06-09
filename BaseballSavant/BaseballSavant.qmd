@@ -1,0 +1,749 @@
+---
+title: "BaseballSavant"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(mgcv)
+library(purrr)
+library(jsonlite)
+```
+
+Import all Yakkertech Data
+```{r}
+kcl_all_files <- list.files(
+  path        = "/Users/charl/OneDrive/Documents/Cornbelters/CornbeltersSummerProjects/YakkertechData/kclData",
+  pattern     = "\\.csv$",
+  full.names  = TRUE
+)
+
+belters_all_files <- list.files(
+  path        = "/Users/charl/OneDrive/Documents/Cornbelters/CornbeltersSummerProjects/YakkertechData/CornBeltersData",
+  pattern     = "\\.csv$",
+  full.names  = TRUE
+)
+
+kcl_list_dfs <- kcl_all_files |> 
+  map(read_csv)
+
+belters_list_dfs <- belters_all_files |> 
+  map(read_csv)
+
+KCLyakkertechData <- bind_rows(kcl_list_dfs)
+write_csv(KCLyakkertechData, "KCLYakkertechData.csv")
+
+BeltersyakkertechData <- bind_rows(belters_list_dfs)
+write_csv(BeltersyakkertechData, "BeltersYakkertechData.csv")
+```
+
+Fix all yakkertech naming mistakes
+```{r}
+corrections <- c(
+  "Justin Trusner" = "Jacob Trusner",
+  "Brooks Neuhof" = "Brooks Neuhoff",
+  "Teagan Disharoom" = 	"Teagan Disharoon",
+  "Kam  Ross" = "Kam Ross",
+  "Brayden  Windy" = "Brayden Windy",
+  "Sammy Descarpentrie" = "Sam DesCarpentrie"
+)
+
+fixNames <- function(df, column, lookup){
+  old_values <- df[[column]]
+  needs_fix <- old_values %in% names(lookup)
+  df[[column]] <- ifelse(
+    needs_fix,
+    lookup[old_values],
+    old_values
+  )
+  return(df)
+}
+
+KCLyakkertechData <- fixNames(KCLyakkertechData, "Batter", corrections)
+KCLyakkertechData <- fixNames(KCLyakkertechData, "Pitcher", corrections)
+
+
+BeltersyakkertechData <- BeltersyakkertechData |> 
+  filter(BatterTeam == "Normal cornbelters")
+```
+
+
+
+
+
+Create columns for if it was a strike and if they swung
+```{r}
+KCLyakkertechData <- KCLyakkertechData |> 
+  mutate(
+      IsStrike = PlateLocHeight >= 1.5 &
+                    PlateLocHeight <= 3.5 &
+                    PlateLocSide   >= -1 &
+                    PlateLocSide   <=  1
+    ) |> 
+  mutate(
+    IsSwing = PitchCall == "InPlay" |
+              PitchCall == "StrikeSwinging" |
+              PitchCall == "Foul"
+  ) |> 
+  mutate(
+      zone = case_when(
+        PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide >= -1 & PlateLocSide <= -.3333333           ~ 1,
+        PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333      ~ 2,
+        PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide > .3333333 & PlateLocSide <= 1              ~ 3,
+        PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide >= -1 & PlateLocSide <= -.3333333      ~ 4,
+        PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333 ~ 5,
+        PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide > .3333333 & PlateLocSide <= 1         ~ 6,
+        PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide >= -1 & PlateLocSide <= -.3333333          ~ 7,
+        PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333     ~ 8,
+        PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide > .3333333 & PlateLocSide <= 1             ~ 9,
+        TRUE ~ NA_integer_
+      )
+    )
+
+BeltersyakkertechData <- BeltersyakkertechData |> 
+  mutate(
+      IsStrike = PlateLocHeight >= 1.5 &
+                    PlateLocHeight <= 3.5 &
+                    PlateLocSide   >= -1 &
+                    PlateLocSide   <=  1
+    ) |> 
+  mutate(
+    IsSwing = PitchCall == "InPlay" |
+              PitchCall == "StrikeSwinging" |
+              PitchCall == "Foul"
+  ) |> 
+  mutate(
+      zone = case_when(
+        PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide >= -1 & PlateLocSide <= -.3333333           ~ 3,
+        PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333      ~ 2,
+        PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide > .3333333 & PlateLocSide <= 1              ~ 1,
+        PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide >= -1 & PlateLocSide <= -.3333333      ~ 6,
+        PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333 ~ 5,
+        PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide > .3333333 & PlateLocSide <= 1         ~ 4,
+        PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide >= -1 & PlateLocSide <= -.3333333          ~ 9,
+        PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333     ~ 8,
+        PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide > .3333333 & PlateLocSide <= 1             ~ 7,
+        TRUE ~ NA_integer_
+      )
+    )
+
+```
+
+
+Initialize all Models
+```{r}
+savant <- read_csv("savantData25.csv")
+
+set.seed(42)
+
+fit_xba <- gam(
+  expected_babip ~ te(launch_speed, launch_angle),
+  data = savant,
+  family = gaussian(),
+  method = "REML"
+)
+
+fit_xwoba <- gam(
+  expected_woba ~ te(launch_speed, launch_angle),
+  data = savant,
+  family = gaussian(),
+  method = "REML"
+)
+
+fit_xslg <- gam(
+  estimated_slg_using_speedangle ~ te(launch_speed, launch_angle),
+  data = savant,
+  family = gaussian(),
+  method = "REML"
+)
+
+
+```
+
+
+Calculate Expected Batting Average
+```{r}
+KCLyakkertechData <- KCLyakkertechData |> 
+  mutate(row_id = row_number())
+
+modelYakkertechData <- KCLyakkertechData |> 
+  select(row_id, ExitSpeed, Angle) |> 
+  filter(!is.na(ExitSpeed) & !is.na(Angle)) |> 
+  rename(
+    launch_speed = ExitSpeed,
+    launch_angle = Angle
+  )
+
+savant <- savant |> 
+  filter(!is.na(launch_speed) & !is.na(launch_angle)) |> 
+  filter(expected_babip > 0 & expected_babip < 1)
+
+modelYakkertechData$predicted_xba <- predict(fit_xba, newdata = modelYakkertechData)
+modelYakkertechData$predicted_xba <- pmax(0.0001, modelYakkertechData$predicted_xba)
+
+KCLyakkertechData <- KCLyakkertechData |> 
+  left_join(
+    modelYakkertechData |> select(row_id, predicted_xba),
+    by = "row_id"
+  )
+
+```
+
+```{r}
+BeltersyakkertechData <- BeltersyakkertechData |> 
+  mutate(row_id = row_number())
+
+modelYakkertechData <- BeltersyakkertechData |> 
+  select(row_id, ExitSpeed, Angle) |> 
+  filter(!is.na(ExitSpeed) & !is.na(Angle)) |> 
+  rename(
+    launch_speed = ExitSpeed,
+    launch_angle = Angle
+  )
+
+savant <- savant |> 
+  filter(!is.na(launch_speed) & !is.na(launch_angle)) |> 
+  filter(expected_babip > 0 & expected_babip < 1)
+
+modelYakkertechData$predicted_xba <- predict(fit_xba, newdata = modelYakkertechData)
+modelYakkertechData$predicted_xba <- pmax(0.0001, modelYakkertechData$predicted_xba)
+
+BeltersyakkertechData <- BeltersyakkertechData |> 
+  left_join(
+    modelYakkertechData |> select(row_id, predicted_xba),
+    by = "row_id"
+  )
+
+```
+
+Calculate Expected wOBA
+```{r}
+modelYakkertechData <- KCLyakkertechData |> 
+  select(row_id, ExitSpeed, Angle) |> 
+  filter(!is.na(ExitSpeed) & !is.na(Angle)) |> 
+  rename(
+    launch_speed = ExitSpeed,
+    launch_angle = Angle
+  )
+
+modelYakkertechData$predicted_xwoba <- predict(fit_xwoba, newdata = modelYakkertechData)
+modelYakkertechData$predicted_xwoba <- pmax(0.0001, modelYakkertechData$predicted_xwoba)
+
+KCLyakkertechData <- KCLyakkertechData |> 
+  left_join(
+    modelYakkertechData |> select(row_id, predicted_xwoba),
+    by = "row_id"
+  )
+
+```
+
+```{r}
+modelYakkertechData <- BeltersyakkertechData |> 
+  select(row_id, ExitSpeed, Angle) |> 
+  filter(!is.na(ExitSpeed) & !is.na(Angle)) |> 
+  rename(
+    launch_speed = ExitSpeed,
+    launch_angle = Angle
+  )
+
+modelYakkertechData$predicted_xwoba <- predict(fit_xwoba, newdata = modelYakkertechData)
+modelYakkertechData$predicted_xwoba <- pmax(0.0001, modelYakkertechData$predicted_xwoba)
+
+BeltersyakkertechData <- BeltersyakkertechData |> 
+  left_join(
+    modelYakkertechData |> select(row_id, predicted_xwoba),
+    by = "row_id"
+  )
+
+```
+
+
+Calculate Expected SLG
+```{r}
+modelYakkertechData <- KCLyakkertechData |> 
+  select(row_id, ExitSpeed, Angle) |> 
+  filter(!is.na(ExitSpeed) & !is.na(Angle)) |> 
+  rename(
+    launch_speed = ExitSpeed,
+    launch_angle = Angle
+  )
+
+modelYakkertechData$predicted_xslg <- predict(fit_xslg, newdata = modelYakkertechData)
+modelYakkertechData$predicted_xslg <- pmax(0.0001, modelYakkertechData$predicted_xslg)
+
+
+KCLyakkertechData <- KCLyakkertechData |> 
+  left_join(
+    modelYakkertechData |> select(row_id, predicted_xslg),
+    by = "row_id"
+  )
+
+KCLyakkertechData <- KCLyakkertechData |> 
+  mutate(predicted_xba = replace_na(predicted_xba, 0),
+         predicted_xwoba = replace_na(predicted_xwoba, 0),
+         predicted_xslg = replace_na(predicted_xslg, 0))
+```
+
+```{r}
+modelYakkertechData <- BeltersyakkertechData |> 
+  select(row_id, ExitSpeed, Angle) |> 
+  filter(!is.na(ExitSpeed) & !is.na(Angle)) |> 
+  rename(
+    launch_speed = ExitSpeed,
+    launch_angle = Angle
+  )
+
+modelYakkertechData$predicted_xslg <- predict(fit_xslg, newdata = modelYakkertechData)
+modelYakkertechData$predicted_xslg <- pmax(0.0001, modelYakkertechData$predicted_xslg)
+
+BeltersyakkertechData <- BeltersyakkertechData |> 
+  left_join(
+    modelYakkertechData |> select(row_id, predicted_xslg),
+    by = "row_id"
+  )
+
+BeltersyakkertechData <- BeltersyakkertechData |> 
+  mutate(predicted_xba = replace_na(predicted_xba, 0),
+         predicted_xwoba = replace_na(predicted_xwoba, 0),
+         predicted_xslg = replace_na(predicted_xslg, 0))
+```
+
+
+
+Function to calculate basic hitting stats
+```{r}
+getBasicHitting <- function(df, name){
+  df <- df |> 
+    filter(Batter == name)
+  
+  PA <- df |> 
+    filter(!is.na(PlayResult) | !is.na(KorBB) | PitchCall == "HitByPitch") |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  AB <- df |> 
+    filter(!is.na(PlayResult)) |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  H <- df |> 
+    filter(PlayResult == "Single" | PlayResult == "Double" |PlayResult == "Triple" |PlayResult == "HomeRun") |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  Singles <- df |> 
+    filter(PlayResult == "Single") |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  Doubles <- df |> 
+    filter(PlayResult == "Double") |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  Triples <- df |> 
+    filter(PlayResult == "Triple") |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  HR <- df |> 
+    filter(PlayResult == "HomeRun") |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  TB <- (1*Singles) + (2*Doubles) + (3*Triples) + (4*HR)
+  
+  BB <- df |> 
+    filter(KorBB == "Walk") |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  HBP <- df |> 
+    filter(PitchCall == "HitByPitch") |> 
+    summarize(count = n()) |> 
+    pull(count)
+  
+  BA <- H / AB
+  OBP <- (H + BB + HBP) / PA
+  SLG <- TB / AB
+  OPS <- OBP + SLG
+  
+  return(
+    list(
+      PA = PA,
+      AB = AB,
+      H = H,
+      HR = HR,
+      BA = BA,
+      OBP = OBP,
+      SLG = SLG,
+      OPS = OPS
+      
+    )
+  )
+}
+
+#getBasicHitting(KCLyakkertechData, "Michael Lucas")
+
+
+
+
+```
+
+Function to calculate advanced hitting stats
+```{r}
+getAdvancedHitting <- function(df, name){
+  df <- df |> 
+    filter(Batter == name)
+  
+  avgExitVelo <- df |> 
+    filter(!is.na(ExitSpeed)) |> 
+    summarize(avgExitVelo = mean(ExitSpeed)) |> 
+    pull(avgExitVelo)
+  
+  maxExitVelo <- df |> 
+    filter(!is.na(ExitSpeed)) |> 
+    summarize(max = if (n()==0) NA_real_ else max(ExitSpeed)) |> 
+    pull(max)
+  
+  LASweetSpot <- df |> 
+    filter(!is.na(Angle)) |> 
+    summarize(pct = mean(Angle >= 8 & Angle <= 32)) |> 
+    pull(pct)
+  
+  hardHitPct <- df |> 
+    filter(!is.na(ExitSpeed)) |> 
+    summarize(pct = mean(ExitSpeed >= 90)) |> 
+    pull(pct)
+  
+  squaredUpPct <- df |> 
+    filter(!is.na(Angle) & !is.na(ExitSpeed)) |> 
+    summarize(pct = mean(Angle >= 8 & Angle <= 32 & ExitSpeed >= 90)) |> 
+    pull(pct)
+  
+  kPct <- df |> 
+    filter(!is.na(PlayResult) | !is.na(KorBB) | PitchCall == "HitByPitch") |> 
+    summarize(
+      pct = {
+        total_PA <- n()
+        strikeouts <- sum(
+          PlayResult %in% c("StrikeoutLooking", "StrikeoutSwinging"), na.rm = TRUE
+        )
+      if(total_PA == 0) 0 else strikeouts / total_PA
+      }
+    ) |> 
+    pull(pct)
+  
+  bbPct <- df |> 
+    filter(!is.na(PlayResult) | !is.na(KorBB)) |>
+    summarize(pct = sum(KorBB == "Walk", na.rm = TRUE) / n()) |> 
+    pull(pct)
+  
+  whiffPct <- df |> 
+    filter(!is.na(PitchCall)) |> 
+    filter(!(PitchCall %in% c("BallCalled", "HitByPitch", "StrikeCalled"))) |> 
+    summarize(pct = mean(PitchCall == "StrikeSwinging")) |> 
+    pull(pct)
+  
+  chasePct <- df |> 
+    filter(IsStrike == FALSE) |> 
+    summarize(pct = mean(IsSwing == TRUE)) |> 
+    pull(pct)
+  
+  xBA <- df |> 
+    filter(!is.na(PlayResult)) |> 
+    summarize(avg = mean(predicted_xba)) |> 
+    pull(avg)
+  
+  xSLG <- df |> 
+    filter(!is.na(PlayResult)) |> 
+    summarize(avg = mean(predicted_xslg)) |> 
+    pull(avg)
+  
+  xWOBA <- df |> 
+    filter(!is.na(PlayResult)) |> 
+    summarize(avg = mean(predicted_xwoba)) |> 
+    pull(avg)
+  
+  xBABIP <- df |> 
+    filter(predicted_xba > 0) |> 
+    summarize(avg = mean(predicted_xba)) |> 
+    pull(avg)
+  
+  babip <- df |> 
+    filter(PitchCall == "InPlay" & !is.na(PlayResult)) |> 
+    summarize(avg = sum(PlayResult %in% c("Single","Double","Triple","HomeRun")) / n()) |> 
+    pull(avg)
+  
+  return(
+    list(
+      avgExitVelo = avgExitVelo,
+      maxExitVelo = maxExitVelo,
+      LASweetSpot = LASweetSpot,
+      hardHitPct = hardHitPct,
+      squaredUpPct = squaredUpPct,
+      kPct = kPct,
+      bbPct = bbPct,
+      whiffPct = whiffPct,
+      chasePct = chasePct,
+      xBA = xBA,
+      xSLG = xSLG,
+      xWOBA = xWOBA,
+      xBABIP = xBABIP,
+      babip = babip
+    )
+  )
+    
+}
+
+
+
+#getAdvancedHitting(KCLyakkertechData, "Owen Laroe")
+
+#test <- getAdvancedHitting(KCLyakkertechData, "Owen Laroe")[[1]]
+
+```
+
+Function to calculate advanced pitching stats
+```{r}
+getAdvancedPitching <- function(df, name) {
+  df <- df |> 
+    filter(Pitcher == name)
+  
+  FastballVelo <- df |> 
+    filter(TaggedPitchType == "Fastball") |> 
+    summarize(velo = mean(RelSpeed)) |> 
+    pull(velo)
+  
+  avgExitVelo <- df |> 
+    filter(!is.na(ExitSpeed)) |> 
+    summarize(
+      avgExitVelo = mean(ExitSpeed)
+    ) |> 
+  pull(avgExitVelo)
+  
+  hardHitPct <- df |> 
+    filter(!is.na(ExitSpeed)) |> 
+    summarize(pct = mean(ExitSpeed >= 95)) |> 
+    pull(pct)
+  
+  kPct <- df |> 
+    filter(!is.na(PlayResult) | !is.na(KorBB)) |> 
+    summarize(
+      pct = {
+        total_PA <- n()
+        strikeouts <- sum(
+          PlayResult %in% c("StrikeoutLooking", "StrikeoutSwinging"), na.rm = TRUE
+        )
+      if(total_PA == 0) 0 else strikeouts / total_PA
+      }
+    ) |> 
+    pull(pct)
+  
+  bbPct <- df |> 
+    filter(!is.na(PlayResult) | !is.na(KorBB)) |>
+    summarize(pct = sum(KorBB == "Walk", na.rm = TRUE) / n()) |> 
+    pull(pct)
+  
+  whiffPct <- df |> 
+    filter(!is.na(PitchCall)) |> 
+    filter(!(PitchCall %in% c("BallCalled", "HitByPitch", "StrikeCalled"))) |> 
+    summarize(pct = mean(PitchCall == "StrikeSwinging")) |> 
+    pull(pct)
+  
+  chasePct <- df |> 
+    filter(IsStrike == FALSE) |> 
+    summarize(pct = mean(IsSwing == TRUE)) |> 
+    pull(pct)
+  
+  groundBallPct <- df |> 
+    filter(!is.na(HitType) & HitType != "Throwdown") |> 
+    summarize(pct = mean(HitType == "GroundBall")) |> 
+    pull(pct)
+  
+  
+}
+```
+
+
+Creating Batter Advanced Stats Dataframe
+```{r}
+kcl_batter_list <- split(KCLyakkertechData, KCLyakkertechData$Batter)
+
+kcl_advanced_by_batter <- map2_df(
+  .x = kcl_batter_list,
+  .y = names(kcl_batter_list),
+  ~ as_tibble(getAdvancedHitting(.x, .y)),
+  .id = "Batter"
+)
+
+kcl_team_stats <- KCLyakkertechData |> 
+  mutate(Batter = "KCL_Team") |> 
+  getAdvancedHitting("KCL_Team") |> 
+  as_tibble() |> 
+  mutate(Batter = "KCL_Team")
+
+kcl_advanced_by_batter <- bind_rows(kcl_advanced_by_batter, kcl_team_stats)
+
+
+belters_batter_list <- split(BeltersyakkertechData, BeltersyakkertechData$Batter)
+
+belters_advanced_by_batter <- map2_df(
+  .x = belters_batter_list,
+  .y = names(belters_batter_list),
+  ~ as_tibble(getAdvancedHitting(.x, .y)),
+  .id = "Batter"
+)
+
+belters_team_stats <- BeltersyakkertechData |> 
+  mutate(Batter = "Normal CornBelters") |> 
+  getAdvancedHitting("Normal CornBelters") |> 
+  as_tibble() |> 
+  mutate(Batter = "Normal CornBelters")
+
+belters_advanced_by_batter <- bind_rows(belters_advanced_by_batter, belters_team_stats)
+
+
+invert_cols <- c("kPct", "whiffPct", "chasePct")
+
+kcl_advanced_by_batter <- kcl_advanced_by_batter |> 
+  mutate(
+    across(
+      .cols = where(is.numeric) & !all_of(invert_cols),
+      .fns  = ~ percent_rank(.) * 100,
+      .names = "{.col}_pct"
+    )
+  ) |> 
+  mutate(
+    across(
+      .cols = all_of(invert_cols),
+      .fns  = ~ percent_rank(-.) * 100,
+      .names = "{.col}_pct"
+    )
+  )
+
+belters_advanced_by_batter <- belters_advanced_by_batter |> 
+  mutate(
+    across(
+      .cols = where(is.numeric) & !all_of(invert_cols),
+      .fns  = ~ percent_rank(.) * 100,
+      .names = "{.col}_pct"
+    )
+  ) |> 
+  mutate(
+    across(
+      .cols = all_of(invert_cols),
+      .fns  = ~ percent_rank(-.) * 100,
+      .names = "{.col}_pct"
+    )
+  )
+
+```
+
+Save edited csv data
+```{r}
+write_csv(KCLyakkertechData, "KCLYakkertechData.csv")
+write_csv(BeltersyakkertechData, "BeltersYakkertechData.csv")
+
+write_csv(KCLyakkertechData, "ZoneTool/KCLYakkertechData.csv")
+write_csv(BeltersyakkertechData, "ZoneTool/BeltersYakkertechData.csv")
+
+
+```
+
+
+Attach basic hitting stats to advanced stats
+```{r}
+kcl_basicStats_files <- c(
+  "KCLStats/bluecapsStatsFinal.csv",
+  "KCLStats/bobcatsStatsFinal.csv",
+  "KCLStats/groundslothsStatsFinal.csv",
+  "KCLStats/merchantsStatsFinal.csv"
+)
+
+kcl_basic_stats_dfs <- kcl_basicStats_files |> 
+  map(read_csv)
+
+KCLBasicStats <- bind_rows(kcl_basic_stats_dfs) |> 
+  filter(Name != "Total") |> 
+  rename(Batter = Name)
+#write_csv(KCLBasicStats, "KCLBasicStats.csv")
+
+KCLSavantData <- kcl_advanced_by_batter |> 
+  left_join(KCLBasicStats, by = "Batter")
+
+```
+
+Put in new xWOBA con
+```{r}
+xWOBA_2 <- read_csv("YakkertechData/xWOBA_KCL/Hitter_XWOBA.csv") |> 
+  select(-...1) |> 
+  rename(xWOBA_2 = xWOBA,
+         xWOBA_2_pct = Percentile)
+
+KCLSavantData <- KCLSavantData |> 
+  left_join(xWOBA_2, by = "Batter")
+
+```
+
+
+Create Advanced Stats Visuals
+```{r}
+plot_percentile_bars <- function(player_data, stat_cols) {
+  pct_cols <- paste0(stat_cols, "_pct")
+
+  df <- tibble(
+    Stat = factor(stat_cols, levels = rev(stat_cols)),
+    Value = round(as.numeric(player_data[stat_cols]), 2),
+    Percentile = round(as.numeric(player_data[pct_cols]), 0)
+  )
+
+  df <- df %>%
+    mutate(
+      Color = case_when(
+        Percentile >= 85 ~ "#d82129",
+        Percentile >= 70 ~ "#d77768",
+        Percentile >= 55 ~ "#c6b3ad",
+        Percentile >= 45 ~ "#aec9cf",
+        Percentile >= 20 ~ "#6886ba",
+        TRUE            ~ "#325aa1"
+      )
+    )
+
+  ggplot(df, aes(x = Percentile, y = Stat)) +
+    geom_bar(stat = "identity", aes(fill = Color), width = .9) +
+    geom_point(aes(fill = Color), shape = 21, color = "white", size = 8, stroke = 1.3) +
+    geom_text(aes(label = paste0(Percentile)), color = "white", size = 3.5, fontface = "bold") +
+    geom_text(aes(label = round(Value, 3), x = 105),
+              hjust = 0, size = 4) +
+    scale_fill_identity() +
+    scale_x_continuous(limits = c(-4, 115), expand = c(0, 0)) +
+    labs(x = NULL, y = NULL) +
+    theme_minimal(base_size = 13) +
+    theme(
+      panel.grid.major.y = element_blank(),
+      axis.text.y = element_text(size = 12),
+      plot.title = element_text(hjust = 0.5),
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank()
+    )
+}
+  
+player_row <- KCLSavantData |> filter(Batter == "Teagan Disharoon")
+plot_percentile_bars(player_row, stat_cols = c("avgExitVelo", "maxExitVelo", "LASweetSpot", "hardHitPct", "squaredUpPct",
+                                               "kPct", "bbPct", "whiffPct", "chasePct", "xBA", "xSLG", "xWOBA", "xWOBA_2",
+                                               "xBABIP", "babip"))
+
+
+KCLyakkertechData |> 
+  filter(Batter == "Teagan Disharoon") |> 
+  select(ExitSpeed, Angle, PlayResult, predicted_xwoba)
+  
+```
+
+
+
+
+
+
+
