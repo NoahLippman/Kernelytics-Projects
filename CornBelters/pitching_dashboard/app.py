@@ -4,7 +4,7 @@ import pandas as pd
 from tempfile import NamedTemporaryFile
 import os
 from pitcher_card import pitching_dashboard
-from pitcher_scripts import plot_pitch_velocity_with_line, plot_pitch_usage
+from pitcher_scripts import plot_pitch_velocity_with_line, plot_pitch_usage, plot_pitcher_percentiles
 
 here = Path(__file__).parent
 data_path = here / "Data/2025.csv"
@@ -35,7 +35,10 @@ try:
         'PlateLocHeight': float,
         'OutsOnPlay': float,
         'RunsScored': float,
-        'KorBB': str
+        'KorBB': str,
+        'ExitSpeed': float,
+        'Angle': float,
+        'HitType': str,
     }
     df = pd.read_csv(data_path, dtype=dtypes)
 
@@ -166,7 +169,7 @@ app_ui = ui.page_fluid(
                 # Add footer or download if needed
             ),
             ui.card(
-                ui.card_header("Dashboard 3"),
+                ui.card_header("Percentile Rankings"),
                 ui.output_image("image_output3"),
                 ui.output_text("error_message3"),
                 # Add footer or download if needed
@@ -435,9 +438,52 @@ def server(input, output, session):
         if pitcher_df.empty:
             return "No data found for the selected pitcher and date."
         generated_path = here / f"CornBelters/usage/{date}/{pitcher_name}_pitch_usage.png"
+        return "" if generated_path.exists() else "Failed to generate percentile chart. Please try again."
+    @render.image
+    def image_output3():
+        pitcher_name = input.pitcher_name().strip()
+        pitcher_df = df
+        if pitcher_df is None:
+            return None
+
+        try:
+            with NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                tmp_path = tmp_file.name
+                plot_pitcher_percentiles(df,pitcher_name)
+
+                generated_path = here / f'CornBelters/percentiles/{pitcher_name}_percentiles.png'
+                if generated_path.exists():
+                    return {
+                        "src": str(generated_path),
+                        "width": "100%",
+                        "height": "auto",
+                        "alt": f"{pitcher_name} percentile for ALL dates"
+                    }
+                else:
+                    return None
+        except Exception as e:
+            print(f"Error generating pitching percentile {pitcher_name} : {e}")
+            return None
+        finally:
+            if 'tmp_path' in locals() and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    @render.text        
+    def error_message3():
+        pitcher_name = input.pitcher_name().strip()
+        date = input.date()
+        if not pitcher_name or not date:
+            return "Please select a pitcher and date."
+        team = pitcher_team_map.get(pitcher_name, "")
+        if not team:
+            return "No team found for the selected pitcher."
+        
+        pitcher_df = df_grouping(pitcher_name, date)
+        if pitcher_df is None:
+            return "No data found for the selected pitcher and date."
+        if pitcher_df.empty:
+            return "No data found for the selected pitcher and date."
+        generated_path = here / f"CornBelters/usage/{date}/{pitcher_name}_pitch_usage.png"
         return "" if generated_path.exists() else "Failed to generate velocity chart. Please try again."
-
-
 
 
 
