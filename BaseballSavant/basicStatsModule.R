@@ -102,9 +102,9 @@ basicStatsServer <- function(id,
       tags$ul(
         style = "list-style: none; padding-left: 0; margin: 0 0 12px 0;",
         tags$li(tags$strong("Name: "),    df$name),
-        tags$li(tags$strong("Bats: "),    df$bat_hand),
-        tags$li(tags$strong("Throws: "),  df$throw_hand),
-        tags$li(tags$strong("College: "), df$college)
+        tags$li(tags$strong("Position: "),    df$position),
+        tags$li(tags$strong("College: "),  df$college),
+        tags$li(tags$strong("Throws/Bats: "), df$side)
       )
     })
     
