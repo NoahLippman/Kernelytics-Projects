@@ -1,0 +1,68 @@
+---
+title: "InGameYakkertech"
+format: html
+---
+
+```{r}
+library(tidyverse)
+df <- read_csv("inGame.csv")
+```
+
+Pitcher Details In Game
+```{r}
+InputPitcher <- "Vince Waterman"
+
+# 1) Flag location‐based strikes
+df <- df |> 
+  mutate(
+    IsStrike = PlateLocHeight >= 1.5 &
+                  PlateLocHeight <= 3.5 &
+                  PlateLocSide   >= -1 &
+                  PlateLocSide   <=  1
+  )
+
+# 2) Summarize and format everything in one pipeline
+pitch_summary <- df |> 
+  filter(Pitcher == InputPitcher) |> 
+  group_by(TaggedPitchType) |> 
+  summarize(
+    num_pitches = n(),
+    num_first_pitches = sum(PitchofPA == 1),
+    num_strikes = sum(IsStrike & PitchofPA == 1),
+    avg_velo = mean(RelSpeed, na.rm = TRUE),
+    max_velo = max(RelSpeed, na.rm = TRUE),
+    .groups = "drop"
+  ) |> 
+  mutate(
+    pct_thrown = paste0(sprintf("%.2f", num_pitches / sum(num_pitches) * 100), "%"),
+    pct_thrown_first = paste0(sprintf("%.2f", num_first_pitches / sum(num_first_pitches) * 100), "%"),
+    avg_velo = sprintf("%.2f", avg_velo),
+    max_velo = sprintf("%.2f", max_velo)
+  ) |> 
+  select(TaggedPitchType, num_pitches, pct_thrown, num_first_pitches, pct_thrown_first, avg_velo, max_velo) |> 
+  arrange(desc(num_pitches))
+
+print(pitch_summary)
+
+df |> 
+  filter(Pitcher == InputPitcher,
+         PitchofPA == 1) |> 
+  summarize(
+    batters_faced = n(),
+    first_pitch_strike = sum(IsStrike),
+    first_strike_pct  = paste0(sprintf("%.2f", first_pitch_strike / batters_faced * 100), "%")
+  )
+  
+```
+
+Hitter Details in Game
+```{r}
+df |> 
+  filter(TaggedPitchType == "Fastball", Pitcher == "Cole Noreuil") |> 
+  ggplot(aes(x = PitchNo, y = RelSpeed)) +
+  geom_line() + 
+  geom_point() +
+  theme_classic()
+
+
+```

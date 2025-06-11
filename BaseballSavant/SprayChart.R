@@ -1,31 +1,8 @@
 library(tidyverse)
-library(ggpubr)
-library(baseballr)
-library(ggforce)
-
-# Data Collection
-path = "/Users/noahlippman/Documents/CornBeltersData"
-files <- list.files(path = path)
-game_data <- read.csv(paste(path, "/", files[1], sep = ""))
-
-for(i in files[2:length(files)]){
-  game_data = rbind(game_data, read.csv(paste(path,"/",i, sep = "")))
-}
-
-game_data <- game_data %>%
-  mutate("Swing_Type" = if_else(PitchCall %in% c("InPlay", "Foul", "StrikeSwinging"), 
-                                if_else(PitchCall == "InPlay", "Contact", "Whiff"), 
-                                "No Swing")) 
-game_data <- game_data %>%
-  mutate("Chase" = if_else(Swing_Type %in% c("Contact", "Whiff") & 
-                             (PlateLocSide < -1 | PlateLocSide > 1| 
-                                PlateLocHeight < 1.5 | PlateLocHeight > 3.5), 1, 0)) %>%
-  mutate("PitchCategory" = if_else(TaggedPitchType %in% c("Fastball", "Sinker"), "Fastball",
-                                   if_else(TaggedPitchType %in% c("Splitter", "Changeup"),"Offspeed", "Breaking")))
 
 # Make Spray Chart
-make_spray_chart <- function(player_name){
-  spray_data <- game_data %>%
+make_spray_chart <- function(df, player_name){
+  spray_data <- df %>%
     mutate(Bearing = Bearing * pi / 180)
   
   spray_data <- spray_data %>%
@@ -69,4 +46,39 @@ make_spray_chart <- function(player_name){
   
   return(p)
 }
-make_spray_chart("Jackson Smith")
+
+
+# -----------------------------
+# Shiny Module UI/Server
+# -----------------------------
+sprayChartUI <- function(id) {
+  ns <- NS(id)
+  div(
+    style = "
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      background: #f9f9f9;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    ",
+    # the plot itself
+    div(
+      style = "flex: 1 1 auto; min-width: 0;",
+      plotOutput(ns("sprayPlot"), height = "300px")
+    )
+  )
+}
+
+sprayChartServer <- function(id, data_source, player_name) {
+  moduleServer(id, function(input, output, session) {
+    output$sprayPlot <- renderPlot({
+      # make sure we have a batter
+      req(player_name())
+      df <- data_source()
+      # call your function
+      make_spray_chart(df, player_name())
+    })
+  })
+}
