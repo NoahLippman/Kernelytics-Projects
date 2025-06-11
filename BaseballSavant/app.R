@@ -18,7 +18,7 @@ kclAdvancedData <- read_csv("KCLSavantData.csv")
 beltersAdvancedData <- read_csv("BeltersSavantData.csv")
 AdvancedData <- read_csv("SavantData.csv")
 
-kclPlayerDetails <- read_csv("test.csv")
+playerDetails <- read_csv("playerDetails.csv")
 
 
 # UI
@@ -76,13 +76,13 @@ server <- function(input, output, session) {
   
   #Get player details
   player_details <- reactive({
-    kclPlayerDetails |> 
+    playerDetails |> 
       filter(Name == selected_player()) |> 
       select(
         name       = Name,
-        bat_hand   = BatSide,
-        throw_hand = ThrowSide,
-        college    = College
+        position   = Position,
+        college    = College,
+        side       = Side
       ) %>%
       slice(1)
   })
