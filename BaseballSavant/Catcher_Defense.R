@@ -1,5 +1,5 @@
 # Data Collection
-kcl_path = "/Users/noahlippman/Documents/Kernelytics-Projects-main/kclData"
+kcl_path = "/Users/noahlippman/Documents/Github/Kernelytics-Projects/kclData"
 kcl_files <- list.files(path = kcl_path)
 game_data <- read.csv(paste(kcl_path, "/", kcl_files[1], sep = ""))
 
@@ -7,7 +7,7 @@ for(i in kcl_files[2:length(kcl_files)]){
   game_data = bind_rows(game_data, read.csv(paste(kcl_path,"/",i, sep = "")))
 }
 
-belters_path = "/Users/noahlippman/Documents/Kernelytics-Projects-main/CornBeltersData"
+belters_path = "/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/CornBeltersData"
 belters_files <- list.files(path = belters_path)
 
 for(i in belters_files[1:length(belters_files)]){
@@ -146,7 +146,7 @@ CS_above_average <- function(player_name, league, data){
 # Plot a Player's CS% HeatMap
 Catcher_Framing_Map <- function(player_name, league, data){
   strike_zone_data <- strike_zone_augment(game_data)
-  data <- data_processer("Lawson Alwan", league, strike_zone_data)
+  data <- data_processer(player_name, league, strike_zone_data)
   CS_Added <- CS_above_average(player_name, league, strike_zone_data)
   p <- ggplot(data, aes(xZone, yZone, fill = CS_Rate_aboveAverage)) +
     geom_tile(aes(height = height, width = width)) +
@@ -187,5 +187,5 @@ Catcher_Framing_Map <- function(player_name, league, data){
   return(p)
 }
 
-Catcher_Framing_Map("Lawson Alwan", "Kcl", game_data)
+Catcher_Framing_Map("Charlie Graham", "", game_data)
 
