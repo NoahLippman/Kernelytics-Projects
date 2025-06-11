@@ -1,16 +1,16 @@
 ### Plate Discipline Savant Table
-
+library(readr)
 library(tidyverse)
 library(ggplot2) # for testing
 
 # Data Import/Cleaning ----
 
 
-kcl_files <- list.files("kclData", pattern = "\\.csv$", full.names = T)
-kcl_data <- bind_rows(lapply(yt_files, read.csv))
+kcl_files <- list.files("kclData/", pattern = "\\.csv$", full.names = T)
+kcl_data <- bind_rows(lapply(kcl_files, read_csv))
 
-belt_files <- list.files("CornbeltersData", pattern = "\\.csv$", full.names = T)
-belt_data <- bind_rows(lapply(belt_files, read.csv))
+belt_files <- list.files("CornbeltersData/", pattern = "\\.csv$", full.names = T)
+belt_data <- bind_rows(lapply(belt_files, read_csv))
 
 
 # Zone coordinate calculation values - easier to keep track of them this way
@@ -31,10 +31,18 @@ meatbally1 <- zoney1 + box
 meatbally2 <- zoney2 - box
 
 # Calculate shadow zone coords
-edgex1 <- zonex1 - ball
-edgex2 <- zonex2 + ball
-edgey1 <- zoney1 - ball
-edgey2 <- zoney2 + ball
+shadowx1 <- zonex1 - ball
+shadowx2 <- zonex2 + ball
+shadowy1 <- zoney1 - ball
+shadowy2 <- zoney2 + ball
+
+edgex1 <- zonex1 + ball
+edgex2 <- zonex2 - ball
+edgex1 <- zoney1 + ball
+edgey2 <- zoney2 - ball
+
+
+# Calculate edge zone coords
 
 
 # Remove untagged pitches and no-ballflight pitches
@@ -44,16 +52,42 @@ yt_data <- bind_rows(kcl_data, belt_data) %>%
   drop_na(PlateLocHeight, PlateLocSide)
 
 
-# Tag pitches by zone location
+# Tag pitches by zone - 2nd attempt
+yt_data$zone <- case_when(
+  # Meatball
+  yt_data$PlateLocSide >= meatballx1 & yt_data$PlateLocSide <= meatballx2 &
+    yt_data$PlateLocHeight >= meatbally1 & yt_data$PlateLocHeight <= meatbally2
+  ~ "Meatball",
+  # Edge - edge inside the zone
+  yt_data$PlateLocSide >= edgex1 & yt_data$PlateLocSide <= edgex2 &
+    yt_data$PlateLocHeight >= edgey1 & yt_data$PlateLocHeight <= edgey2 &
+    yt_data$PlateLocSide >= zonex1 & yt_data$PlateLocSide <= zonex2 &
+    yt_data$PlateLocHeight >= zoney1 & yt_data$PlateLocHeight <= zoney2
+  ~ "Edge",
+  # Shadow - edge outside the zone
+  (yt_data$PlateLocSide >= edgex1 & yt_data$PlateLocSide <= edgex2 &
+    yt_data$PlateLocHeight >= edgey1 & yt_data$PlateLocHeight <= edgey2 &
+    (!(yt_data$PlateLocSide >= zonex1 & yt_data$PlateLocSide <= zonex2 &
+         yt_data$PlateLocHeight >= zoney1 & yt_data$PlateLocHeight <= zoney2)))
+  ~ "Shadow",
+
+  # Zone
+  yt_data$PlateLocSide >= zonex1 & yt_data$PlateLocSide <= edgex2 &
+    yt_data$PlateLocHeight >= zoney1 & yt_data$PlateLocHeight <= zoney2
+  ~ "Zone",
+  TRUE ~ "Untagged"
+)
+
+# Tag pitches by zone location - first attempt
 yt_data$zone <- case_when(
   # Meatball
   yt_data$PlateLocSide >= meatballx1 & yt_data$PlateLocSide <= meatballx2 &
     yt_data$PlateLocHeight >= meatbally1 & yt_data$PlateLocHeight <= meatbally2
   ~ "Meatball",
   # Edge in zone
-  yt_data$PlateLocSide >= edgex1 & yt_data$PlateLocSide <= edgex2 &
-    yt_data$PlateLocHeight >= edgey1 & yt_data$PlateLocHeight <= edgey2 &
-    yt_data$PlateLocSide >= zonex1 & yt_data$PlateLocSide <= zonex2 &
+  yt_data$PlateLocSide >= zonex1 & yt_data$PlateLocSide <= zonex2 &
+    yt_data$PlateLocHeight >= zoney1 & yt_data$PlateLocHeight <= zoney2 &
+    yt_data$PlateLocSide >= edgex1 & yt_data$PlateLocSide <= edgex2 &
     yt_data$PlateLocHeight >= zoney1 & yt_data$PlateLocHeight <= zoney2
   ~ "Edge",
   # Zone
@@ -99,7 +133,9 @@ ggplot(yt_data, aes(x = PlateLocSide, y = PlateLocHeight, color = zone)) +
   geom_rect(aes(xmin = zonex1, xmax = zonex2, ymin = zoney1, ymax = zoney2), 
             color = "black",fill = NA) +
   geom_rect(aes(xmin = edgex1, xmax = edgex2, ymin = edgey1, ymax = edgey2),
-            color = "black", fill = NA, linetype = "dashed")
+            color = "black", fill = NA, linetype = "dashed") + 
+  geom_rect(aes(xmin = zonex1 + ball, xmax = zonex2 - ball, ymin = zoney1 + ball),
+            ymax = zoney2 - ball, color = 'black', fill =  NA, linetype = "dashed")
   
   
 

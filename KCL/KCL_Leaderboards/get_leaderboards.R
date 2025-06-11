@@ -36,6 +36,22 @@ clean_stats <- function(stats){
   result <- stats[-c(1,2, total_rows - 2, total_rows), ]
   colnames(result) <- master_col
   
+  # Set important columns to numeric
+  result$pa <- as.numeric(result$pa)
+  result$avg <- as.numeric(result$avg)
+  result$hr <- as.numeric(result$hr)
+  result$h <- as.numeric(result$h)
+  result$rbi <- as.numeric(result$rbi)
+  result$ops <- as.numeric(result$ops)
+  result$sb <- as.numeric(result$sb)
+  
+  result$ip <- as.numeric(result$ip)
+  result$er <- as.numeric(result$er)
+  result$so_2 <- as.numeric(result$so_2)
+  result$whip <- as.numeric(result$whip)
+  result$k_bb <- as.numeric(result$k_bb)
+  result$w <- as.numeric(result$w)
+  
   # Calculate ERA for 9 inning game
   result$ip_num <- convert_ip(result$ip)
   result$er <- as.numeric(result$er)
@@ -48,8 +64,7 @@ clean_stats <- function(stats){
   # Remove HR Derby Hitters/Pitchers
   result <- result[!grepl("HR", result$Name), ]
   
-  # Save whip column as numerics and format properly
-  
+
 
   
   
@@ -75,7 +90,7 @@ gs$Team <- "Ground Sloths"
 m$Team <- "Merchants"
 
 
-stats <- bind_rows(bc, b, gs, m)
+full_stats <- bind_rows(bc, b, gs, m)
 
 
 
@@ -108,30 +123,33 @@ get_leaderboard_asc <- function(data, stat){
 
 # Create csvs for the hitting leaderboards
 
-hr <- get_leaderboard_desc(stats, hr) %>%
+hr <- get_leaderboard_desc(full_stats, hr) %>%
   filter(hr > 0)
 colnames(hr) <- c("Name", "Team", "Home Runs")
 write.csv(hr, "hr_leaders.csv", row.names = FALSE)
 
 
-avg <- get_leaderboard_desc(filter(stats, pa > 5), avg)
+avg <- get_leaderboard_desc(filter(full_stats, pa > 5), avg)
+avg$avg <- sprintf("%.3f", avg$avg)
+avg$avg <- sub("^0", "", avg$avg)
 colnames(avg) <- c("Name", "Team", "Batting Average")
 write.csv(avg, "avg_leaders.csv", row.names = FALSE)
 
 
-rbi <- get_leaderboard_desc(stats, rbi)
+rbi <- get_leaderboard_desc(full_stats, rbi)
 colnames(rbi) <- c("Name", "Team", "Runs Batted In")
 write.csv(rbi, "rbi_leaders.csv", row.names = FALSE)
 
-h <- get_leaderboard_desc(stats, h)
+h <- get_leaderboard_desc(full_stats, h)
 colnames(h) <- c("Name", "Team", "Hits")
 write.csv(h, "hit_leaders.csv", row.names = FALSE)
 
-sb <- get_leaderboard_desc(stats, sb)
+sb <- get_leaderboard_desc(full_stats, sb)
 colnames(sb) <- c("Name", "Team", "Stolen Bases")
 write.csv(sb, "sb_leaders.csv", row.names = FALSE)
 
-ops <- get_leaderboard_desc(stats, ops)
+ops <- get_leaderboard_desc(full_stats, ops)
+ops$ops <- sprintf("%.3f", ops$ops)
 colnames(ops) <- c("Name", "Team", "On-Base Plus Slugging")
 write.csv(ops, "ops_leaders.csv", row.names = FALSE)
 
@@ -139,30 +157,31 @@ write.csv(ops, "ops_leaders.csv", row.names = FALSE)
 
 # Create csvs for the pitching leaderboards
 
-era <- get_leaderboard_asc(filter(stats, ip > 3), era)
+era <- get_leaderboard_asc(filter(full_stats, ip > 3), era)
 era$era <- sprintf("%.2f", era$era)
 colnames(era) <- c("Name", "Team", "ERA")
 write.csv(era, "era_leaders.csv", row.names = FALSE)
 
-so <- get_leaderboard_desc(stats, so_2)
+so <- get_leaderboard_desc(full_stats, so_2)
 colnames(so) <- c("Name", "Team", "Strikeouts")
 write.csv(so, "so_leaders.csv", row.names = FALSE)
 
-w <- get_leaderboard_desc(stats, w)
+w <- get_leaderboard_desc(full_stats, w)
 colnames(w) <- c("Name", "Team", "Wins")
 write.csv(w, "w_leaders.csv", row.names = FALSE)
 
-ip <- get_leaderboard_desc(stats, ip)
+ip <- get_leaderboard_desc(full_stats, ip)
+ip$ip <- sprintf("%.1f", ip$ip)
 colnames(ip) <- c("Name", "Team", "Innings Pitched")
 write.csv(ip, "ip_leaders.csv", row.names = FALSE)
 
-whip <- get_leaderboard_asc(filter(stats, ip > 3), whip)
+whip <- get_leaderboard_asc(filter(full_stats, ip > 3), whip)
 whip$whip <- as.numeric(whip$whip)
 whip$whip <- sprintf("%.2f", whip$whip)
 colnames(whip) <- c("Name", "Team", "WHIP")
 write.csv(whip, "whip_leaders.csv",row.names = FALSE)
 
-kbb <- get_leaderboard_desc(stats, k_bb)
+kbb <- get_leaderboard_desc(full_stats, k_bb)
 colnames(kbb) <- c("Name", "Team", "Strikeout to Walk Ratio")
 write.csv(kbb, "kbb_leaders.csv", row.names = FALSE)
 
