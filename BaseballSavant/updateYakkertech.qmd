@@ -5,6 +5,8 @@ format: html
 
 ```{r}
 library(tidyverse)
+library(mgcv)
+library(purrr)
 ```
 
 Import all Yakkertech Data
