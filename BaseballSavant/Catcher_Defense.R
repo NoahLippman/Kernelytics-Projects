@@ -187,5 +187,40 @@ Catcher_Framing_Map <- function(player_name, league, data){
   return(p)
 }
 
-Catcher_Framing_Map("Charlie Graham", "", game_data)
+# -----------------------------
+# Shiny Module UI/Server
+# -----------------------------
+CatcherFramingUI <- function(id) {
+  ns <- NS(id)
+  div(
+    style = "
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      background: #f9f9f9;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    ",
+    # the plot itself
+    div(
+      style = "flex: 1 1 auto; min-width: 0;",
+      plotOutput(ns("Catcher_Framing"), height = "300px")
+    )
+  )
+}
+
+CatcherFramingServer <- function(id, data_source, player_name, league) {
+  moduleServer(id, function(input, output, session) {
+    output$Catcher_Framing <- renderPlot({
+      # make sure we have a catcher
+      req(player_name())
+      df <- data_source()
+      league <- league()
+      # call your function
+      Catcher_Framing_Map(df, player_name(), league)
+    })
+  })
+}
+
 
