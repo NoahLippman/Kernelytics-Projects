@@ -128,7 +128,8 @@ def strike_zone_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, batter_s
         'Slider': 'SLIDER',
         'Cutter': 'CUTTER',
         'Splitter': 'SPLITTER',
-        'Undefined': 'UNKNOWN'
+        'Undefined': 'UNKNOWN',
+        'Knuckleball': 'KNUCKLEBALL'
     }
 
     df['pitch_type'] = df['pitch_type'].fillna('UNKNOWN').astype(str).map(pitch_mapping).fillna('UNKNOWN')
@@ -142,7 +143,8 @@ def strike_zone_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, batter_s
         'SLIDER': 'green',
         'CUTTER': 'yellow',
         'SPLITTER': 'black',
-        'UNKNOWN': 'gray'
+        'UNKNOWN': 'gray',
+        'KNUCKLEBALL': 'brown'
     }
 
     missing_pitches = set(df['pitch_type']) - set(dict_colour.keys())
@@ -206,7 +208,8 @@ def break_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str):
         'Cutter': 'CUTTER',
         'Splitter': 'SPLITTER',
         'FourSeamFastBall': '4-SEAM FASTBALL',
-        'Undefined': 'UNKNOWN'
+        'Undefined': 'UNKNOWN',
+        'Knuckleball': 'KNUCKLEBALL'
     }
 
     df['pitch_type'] = df['pitch_type'].fillna('UNKNOWN').astype(str).map(pitch_mapping).fillna('UNKNOWN')
@@ -221,7 +224,8 @@ def break_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str):
         'CUTTER': 'yellow',
         'SPLITTER': 'black',
         'FOURSEAM': 'pink',
-        'UNKNOWN': 'gray'
+        'UNKNOWN': 'gray',
+        'KNUCKLEBALL': 'brown'
     }
 
     missing_pitches = set(df['pitch_type']) - set(dict_colour.keys())
@@ -300,7 +304,8 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'Splitter':'SPLITTER',
         'Slider': 'SLIDER',
         'Cutter': 'CUTTER',
-        'Undefined': 'UNKNOWN'
+        'Undefined': 'UNKNOWN',
+        'Knuckleball': 'KNUCKLEBALL'
     }
 
     pitcher_data = pitcher_data.copy()  # Avoid SettingWithCopyWarning
@@ -336,7 +341,8 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'SLIDER': 'green',
         'SPLITTER' : 'black',
         'CUTTER': 'yellow',
-        'UNKNOWN': 'gray'
+        'UNKNOWN': 'gray',
+        'KNUCKLEBALL': 'brown'
     }
     df_group['colour'] = df_group['pitch_type'].map(dict_colour).fillna('gray')
 
@@ -514,13 +520,13 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_footer.text(1, 1, 'Data: MLB, Fangraphs\nImages: MLB, ESPN', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./cards/{pitcher_name.replace(', ', '_')}_pitching_dashboard.png"
+    filename = f"./KCL/cards/{pitcher_name.replace(', ', '_')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'modified_yakkertech_file.csv'
+data_path = 'KCL\Data\modified_yakkertech_file.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 

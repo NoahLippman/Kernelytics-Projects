@@ -13,7 +13,7 @@ plot_pitcher_percentile_bars <- function(player_data, stat_cols, display_names) 
   ) %>%
     mutate(
       Value = case_when(
-        Stat %in% c("Chase%", "Whiff%", "K%", "BB%", "Hard-Hit%", "GB%", "Barrel%") ~ Value * 100,
+        as.character(Stat) %in% c("Chase%", "Whiff%", "K%", "BB%", "Hard-Hit%", "GB%", "Barrel%") ~ Value * 100,
         TRUE ~ Value
       ),
       Value = round(Value, 2),
@@ -40,7 +40,7 @@ plot_pitcher_percentile_bars <- function(player_data, stat_cols, display_names) 
     geom_text(aes(label = Percentile), color = "white", size = 3.5, fontface = "bold") +
     geom_text(
       aes(label = case_when(
-        Stat %in% c("Chase%", "Whiff%", "K%", "BB%", "Hard-Hit%", "GB%", "Barrel%") ~ sprintf("%.1f%%", Value),
+        as.character(Stat) %in% c("Chase%", "Whiff%", "K%", "BB%", "Hard-Hit%", "GB%", "Barrel%") ~ sprintf("%.1f%%", Value),
         TRUE ~ sprintf("%.1f", Value)
       ), x = 95),
       hjust = 0, size = 4

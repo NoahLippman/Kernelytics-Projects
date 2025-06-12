@@ -50,7 +50,7 @@ getAdvancedPitching <- function(df, name) {
     { if (is.nan(.) || is.na(.)) NA_real_ else . }
   
   groundBallPct <- df %>%
-    filter(!is.na(HitType) & HitType != "Throwdown") %>%
+    filter(!is.na(HitType)) %>%
     summarize(val = mean(HitType == "GroundBall", na.rm = TRUE)) %>%
     pull(val) %>%
     { if (is.nan(.) || is.na(.)) NA_real_ else . }
@@ -95,23 +95,53 @@ advancedPitcherStatsServer <- function(id, data_source, pitcher_name) {
   moduleServer(id, function(input, output, session) {
     # Compute pitcher metrics and percentiles
     player_data <- reactive({
-      req(pitcher_name())
+      req(pitcher_name(), data_source())
       df <- data_source()
       
+      # Validate input data
+      if (!is.data.frame(df) || nrow(df) == 0) {
+        message("Error: data_source is not a valid data frame or is empty.")
+        return(NULL)
+      }
+      
+      # Remove apostrophes from Pitcher names and ensure consistent case
+      df <- df %>%
+        mutate(Pitcher = gsub("'", "", Pitcher))
+      
       # Log available pitchers
-      league_pitchers <- unique(df$Pitcher)
-
+      league_pitchers <- unique(df$Pitcher[!is.na(df$Pitcher)])
+      if (length(league_pitchers) == 0) {
+        message("Error: No valid pitchers found in data_source.")
+        return(NULL)
+      }
+      message("Available pitchers: ", paste(league_pitchers, collapse = ", "))
+      
       # Calculate metrics for all pitchers
       advanced_by_pitcher <- tibble(
         Pitcher = league_pitchers,
         metrics = map(league_pitchers, ~getAdvancedPitching(df, .x))
       ) %>%
         filter(!map_lgl(metrics, is_null)) %>%  # Remove NULL metrics
-        unnest_wider(metrics) %>%
-        filter(rowSums(!is.na(select(., -Pitcher))) > 0)  # Remove pitchers with all NA metrics
+        unnest_wider(metrics)
       
+      # Check for valid metrics
       if (nrow(advanced_by_pitcher) == 0) {
         message("No pitchers with valid metrics after processing.")
+        return(NULL)
+      }
+      
+      # Ensure numeric columns
+      numeric_cols <- c("xBA", "FastballVelo", "avgExitVelo", "hardHitPct", 
+                        "kPct", "bbPct", "whiffPct", "chasePct", "groundBallPct", "BarrelPct")
+      advanced_by_pitcher <- advanced_by_pitcher %>%
+        mutate(across(all_of(numeric_cols), as.numeric))
+      
+      # Remove pitchers with all NA metrics (excluding Pitcher column)
+      advanced_by_pitcher <- advanced_by_pitcher %>%
+        filter(rowSums(!is.na(select(., all_of(numeric_cols)))) > 0)
+      
+      if (nrow(advanced_by_pitcher) == 0) {
+        message("No pitchers with valid metrics after NA filtering.")
         return(NULL)
       }
       
@@ -120,34 +150,38 @@ advancedPitcherStatsServer <- function(id, data_source, pitcher_name) {
               paste(advanced_by_pitcher$Pitcher, collapse = ", "))
       
       # Compute percentiles
-      invert_cols <- c("bbPct", "hardHitPct", "groundBallPct", "BarrelPct", "xBA")
+      invert_cols <- c("bbPct", "hardHitPct", "BarrelPct", "xBA")
+      non_invert_cols <- setdiff(numeric_cols, invert_cols)
+      
       advanced_by_pitcher <- advanced_by_pitcher %>%
         mutate(
           across(
-            .cols = setdiff(names(select(advanced_by_pitcher, where(is.numeric))), invert_cols),
-            .fns = ~ if_else(is.na(.), NA_real_, percent_rank(.) * 100),
+            all_of(non_invert_cols),
+            ~ if_else(is.na(.), NA_real_, dplyr::percent_rank(.) * 100),
             .names = "{.col}_pct"
           ),
           across(
-            .cols = all_of(invert_cols),
-            .fns = ~ if_else(is.na(.), NA_real_, percent_rank(-.) * 100),
+            all_of(invert_cols),
+            ~ if_else(is.na(.), NA_real_, dplyr::percent_rank(-.) * 100),
             .names = "{.col}_pct"
+          ),
+          across(
+            ends_with("_pct"),
+            ~ if_else(is.na(.) | is.nan(.) | . == 0, 100, .)
           )
         )
       
-      advanced_by_pitcher <- advanced_by_pitcher %>%
-        mutate(across(
-          ends_with("_pct"),
-          ~ if_else(is.na(.) | . == 0, 100, .)
-        ))
-      
-      # Filter for selected pitcher
+      # Filter for selected pitcher (remove apostrophes from input name)
+      cleaned_pitcher_name <- gsub("'", "", pitcher_name())
       result <- advanced_by_pitcher %>% 
-        filter(tolower(Pitcher) == tolower(pitcher_name()))
+        filter(tolower(Pitcher) == tolower(cleaned_pitcher_name))
+      
       if (nrow(result) == 0) {
-        message("No data for selected pitcher: ", pitcher_name(), 
-                ". Available pitchers in metrics: ", paste(advanced_by_pitcher$Pitcher, collapse = ", "))
+        message("No data for selected pitcher: ", cleaned_pitcher_name, 
+                ". Available pitchers: ", paste(advanced_by_pitcher$Pitcher, collapse = ", "))
+        return(NULL)
       }
+      
       result
     })
     

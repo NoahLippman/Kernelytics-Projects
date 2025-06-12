@@ -7,11 +7,9 @@ library(parallelly)
 library(tictoc)
 library(sabRmetrics)
 library(tidyverse)
-
+library(parallel)
 
 cluster <- makeClusterPSOCK(8)
-
-on.exit(stopCluster(cluster), add = TRUE)
 
 savant_data_2025 <- tryCatch(
   {
@@ -28,3 +26,4 @@ savant_data_2025 <- tryCatch(
 )
 
 write_csv(savant_data_2025, "savantData25.csv")
+stopCluster(cluster)
