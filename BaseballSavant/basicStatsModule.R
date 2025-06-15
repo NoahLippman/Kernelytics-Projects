@@ -1,7 +1,5 @@
-# basicStatsModule.R
-
 library(shiny)
-library(dplyr)
+library(tidyverse)
 
 # --------------------------------------------------
 # UI: Basic Player Info Card
@@ -43,8 +41,8 @@ basicStatsUI <- function(id) {
           bottom: 5px;
           left: 50%;
           transform: translateX(-50%);
-          width: 80px;
-          height: 80px;
+          width: 100px;
+          height: 100px;
           border-radius: 50%;
           overflow: hidden;
           border: 2px solid #fff;
@@ -91,8 +89,8 @@ basicStatsServer <- function(id,
         src         = headshot_img(),
         contentType = "image/png",
         alt         = "Headshot",
-        width       = 80,
-        height      = 80
+        width       = 100,
+        height      = 100
       )
     }, deleteFile = FALSE)
     
