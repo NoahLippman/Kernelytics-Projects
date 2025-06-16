@@ -17,34 +17,56 @@ stats_dict = {
     'BB': {'table_header': '$\\bf{BB}$', 'format': '.0f'},   # Walks
     'K': {'table_header': '$\\bf{K}$', 'format': '.0f'}      # Strikeouts
 }
+dict_colour = {
+    '4-SEAM FASTBALL': 'pink',
+    'SINKER': 'purple',
+    'CURVEBALL': 'blue',
+    'CHANGEUP': 'orange',
+    'SWEEPER': 'red',
+    'SLIDER': 'green',
+    'SPLITTER': 'black',
+    'CUTTER': 'yellow',
+    'UNKNOWN': 'gray'
+}
+pitch_mapping = {
+    'Fastball': '4-SEAM FASTBALL',
+    'Sinker': 'SINKER',
+    'Curveball': 'CURVEBALL',
+    'Changeup': 'CHANGEUP',
+    'Sweeper': 'SWEEPER',
+    'Slider': 'SLIDER',
+    'Cutter': 'CUTTER',
+    'Splitter': 'SPLITTER',
+    'Undefined': 'UNKNOWN'
+}
+dtypes = {
+    'Pitcher': str,
+    'PitcherTeam': str,
+    'TaggedPitchType': str,
+    'RelSpeed': float,
+    'HorzBreak': float,
+    'InducedVertBreak': float,
+    'SpinRate': float,
+    'RelSide': float,
+    'RelHeight': float,
+    'Extension': float,
+    'Swing?': float,
+    'Swing Strike?': float,
+    'Strike?': float,
+    'Chase?': float,
+    'PitchCall': str,
+    'PlayResult': str,
+    'Date': str,
+    'BatterSide': str,
+    'PlateLocSide': float,
+    'PlateLocHeight': float,
+    'OutsOnPlay': float,
+    'RunsScored': float,
+    'KorBB': str
+}
 
 # Function to compute pitching stats from local data
 def local_pitching_stats(pitcher_name: str, team: str, season: int, data_path: str):
-    dtypes = {
-        'Pitcher': str,
-        'PitcherTeam': str,
-        'TaggedPitchType': str,
-        'RelSpeed': float,
-        'HorzBreak': float,
-        'InducedVertBreak': float,
-        'SpinRate': float,
-        'RelSide': float,
-        'RelHeight': float,
-        'Extension': float,
-        'Swing?': float,
-        'Swing Strike?': float,
-        'Strike?': float,
-        'Chase?': float,
-        'PitchCall': str,
-        'PlayResult': str,
-        'Date': str,
-        'BatterSide': str,
-        'PlateLocSide': float,
-        'PlateLocHeight': float,
-        'OutsOnPlay': float,
-        'RunsScored': float,
-        'KorBB': str
-    }
     try:
         df = pd.read_csv(data_path, dtype=dtypes)
     except ValueError as e:
@@ -118,31 +140,7 @@ def strike_zone_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, batter_s
         'PlateLocHeight': 'plate_z'
     })
 
-    pitch_mapping = {
-        'Fastball': '4-SEAM FASTBALL',
-        'Sinker': 'SINKER',
-        'Curveball': 'CURVEBALL',
-        'Changeup': 'CHANGEUP',
-        'Sweeper': 'SWEEPER',
-        'Slider': 'SLIDER',
-        'Cutter': 'CUTTER',
-        'Splitter': 'SPLITTER',
-        'Undefined': 'UNKNOWN'
-    }
-
     df['pitch_type'] = df['pitch_type'].fillna('UNKNOWN').astype(str).map(pitch_mapping).fillna('UNKNOWN')
-
-    dict_colour = {
-        '4-SEAM FASTBALL': 'pink',
-        'SINKER': 'purple',
-        'CURVEBALL': 'blue',
-        'CHANGEUP': 'orange',
-        'SWEEPER': 'red',
-        'SLIDER': 'green',
-        'CUTTER': 'yellow',
-        'SPLITTER': 'black',
-        'UNKNOWN': 'gray'
-    }
 
     missing_pitches = set(df['pitch_type']) - set(dict_colour.keys())
     if missing_pitches:
@@ -204,33 +202,7 @@ def break_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str):
         'PitcherThrows': 'p_throws'
     })
 
-    pitch_mapping = {
-        'Fastball': '4-SEAM FASTBALL',
-        'Sinker': 'SINKER',
-        'Curveball': 'CURVEBALL',
-        'Changeup': 'CHANGEUP',
-        'Sweeper': 'SWEEPER',
-        'Slider': 'SLIDER',
-        'Cutter': 'CUTTER',
-        'Splitter': 'SPLITTER',
-        'FourSeamFastBall': '4-SEAM FASTBALL',
-        'Undefined': 'UNKNOWN'
-    }
-
     df['pitch_type'] = df['pitch_type'].fillna('UNKNOWN').astype(str).map(pitch_mapping).fillna('UNKNOWN')
-
-    dict_colour = {
-        '4-SEAM FASTBALL': 'pink',
-        'SINKER': 'purple',
-        'CURVEBALL': 'blue',
-        'CHANGEUP': 'orange',
-        'SWEEPER': 'red',
-        'SLIDER': 'green',
-        'CUTTER': 'yellow',
-        'SPLITTER': 'black',
-        'FOURSEAM': 'pink',
-        'UNKNOWN': 'gray'
-    }
 
     missing_pitches = set(df['pitch_type']) - set(dict_colour.keys())
     if missing_pitches:
@@ -300,33 +272,20 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         print(f"No data found for {pitcher_name} from {team} in {season} for pitch matrix")
         return pd.DataFrame(), []
 
-    pitch_mapping = {
-        'Fastball': '4-SEAM FASTBALL',
-        'Sinker': 'SINKER',
-        'Curveball': 'CURVEBALL',
-        'Changeup': 'CHANGEUP',
-        'Sweeper': 'SWEEPER',
-        'Splitter':'SPLITTER',
-        'Slider': 'SLIDER',
-        'Cutter': 'CUTTER',
-        'Undefined': 'UNKNOWN'
-    }
-
     pitcher_data = pitcher_data.copy()  # Avoid SettingWithCopyWarning
     pitcher_data['pitch_type'] = pitcher_data['pitch_type'].fillna('UNKNOWN').astype(str).map(pitch_mapping)
 
     df_group = pitcher_data.groupby('pitch_type').agg(
         pitch=('pitch_type', 'count'),
         release_speed=('release_speed', 'mean'),
-        max_velo = ('release_speed','max'),
-        vaa = ('vaa','mean'),
+        max_velo=('release_speed', 'max'),
+        vaa=('vaa', 'mean'),
         pfx_z=('pfx_z', 'mean'),
         pfx_x=('pfx_x', 'mean'),
         release_spin_rate=('release_spin_rate', 'mean'),
         release_pos_x=('release_pos_x', 'mean'),
         release_pos_z=('release_pos_z', 'mean'),
         release_extension=('release_extension', 'mean'),
-       # stuff_plus=('stuff+', 'mean'),
         swing=('Swing?', 'sum'),
         whiff=('Swing Strike?', 'sum'),
         in_zone=('In Strike Zone?', 'sum'),
@@ -339,17 +298,7 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
     df_group['chase_rate'] = df_group['chase'] / df_group['pitch']
 
     df_group['pitch_description'] = df_group['pitch_type']
-    dict_colour = {
-        '4-SEAM FASTBALL': 'pink',
-        'SINKER': 'purple',
-        'CURVEBALL': 'blue',
-        'CHANGEUP': 'orange',
-        'SWEEPER': 'red',
-        'SLIDER': 'green',
-        'SPLITTER' : 'black',
-        'CUTTER': 'yellow',
-        'UNKNOWN': 'gray'
-    }
+    
     df_group['colour'] = df_group['pitch_type'].map(dict_colour).fillna('gray')
 
     df_group = df_group.sort_values(by='pitch_usage', ascending=False)
@@ -365,8 +314,8 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'pitch': total_pitches,
         'pitch_usage': 1.0,
         'release_speed': pitcher_data['release_speed'].mean(),
-        'max_velo' : pitcher_data['release_speed'].max(),
-        'vaa' : pitcher_data['vaa'].mean(),
+        'max_velo': pitcher_data['release_speed'].max(),
+        'vaa': pitcher_data['vaa'].mean(),
         'pfx_z': pitcher_data['pfx_z'].mean(),
         'pfx_x': pitcher_data['pfx_x'].mean(),
         'release_spin_rate': pitcher_data['release_spin_rate'].mean(),
@@ -374,7 +323,6 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'release_pos_z': pitcher_data['release_pos_z'].mean(),
         'release_extension': pitcher_data['release_extension'].mean(),
         'swing': pitcher_data['Swing?'].sum(),
-        #'stuff+' : pitcher_data['stuff+'].mean(),
         'whiff': pitcher_data['Swing Strike?'].sum(),
         'in_zone': pitcher_data['Strike?'].sum(),
         'chase': pitcher_data['Chase?'].sum(),
@@ -391,14 +339,13 @@ pitch_stats_dict = {
     'pitch_usage': {'table_header': '$\\bf{Pitch\%}$', 'format': '.1%'},
     'release_speed': {'table_header': '$\\bf{Velocity}$', 'format': '.1f'},
     'max_velo': {'table_header': '$\\bf{Max Velo}$', 'format': '.1f'},
-    'vaa' : {'table_header': '$\\bf{VAA}$', 'format': '.1f'},
+    'vaa': {'table_header': '$\\bf{VAA}$', 'format': '.1f'},
     'pfx_z': {'table_header': '$\\bf{iVB}$', 'format': '.1f'},
     'pfx_x': {'table_header': '$\\bf{HB}$', 'format': '.1f'},
     'release_spin_rate': {'table_header': '$\\bf{Spin}$', 'format': '.0f'},
     'release_pos_x': {'table_header': '$\\bf{hRel}$', 'format': '.1f'},
     'release_pos_z': {'table_header': '$\\bf{vRel}$', 'format': '.1f'},
     'release_extension': {'table_header': '$\\bf{Ext.}$', 'format': '.1f'},
-    #'stuff_plus': {'table_header': '$\\bf{Stuff+}$', 'format': '.1f'},
     'whiff_rate': {'table_header': '$\\bf{Whiff\%}$', 'format': '.1%'},
     'in_zone_rate': {'table_header': '$\\bf{Zone\%}$', 'format': '.1%'},
     'chase_rate': {'table_header': '$\\bf{Chase\%}$', 'format': '.1%'}
@@ -417,7 +364,6 @@ table_columns = [
     'release_pos_x',
     'release_pos_z',
     'release_extension',
-    #'stuff_plus',
     'whiff_rate',
     'in_zone_rate',
     'chase_rate'
@@ -430,10 +376,36 @@ def plot_pitch_format(df: pd.DataFrame):
             df_group[column] = df_group[column].apply(lambda x: format(x, props['format']) if isinstance(x, (int, float)) else x)
     return df_group
 
-cmap_sum = mcolors.LinearSegmentedColormap.from_list("", ['#648FFF', '#FFFFFF', "#AD331D"])
+cmap_sum = sns.color_palette("coolwarm", as_cmap=True)
 colour_stats = ['release_speed', 'whiff_rate', 'in_zone_rate', 'chase_rate']
 
-def get_cell_colours(df_group: pd.DataFrame):
+def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name: str, team: str, season: int):
+    # Calculate league-wide averages for the relevant stats
+    full_df['Year'] = pd.to_datetime(full_df['Date'], errors='coerce').dt.year
+    league_df = full_df[full_df['Year'] == season].copy()
+    
+    # Compute league-wide stats
+    league_totals = league_df.groupby('TaggedPitchType').agg(
+        pitch=('TaggedPitchType', 'count'),
+        release_speed=('RelSpeed', 'mean'),
+        swing=('Swing?', 'sum'),
+        whiff=('Swing Strike?', 'sum'),
+        in_zone=('In Strike Zone?', 'sum'),
+        chase=('Chase?', 'sum')
+    ).reset_index()
+    
+    league_totals['whiff_rate'] = league_totals['whiff'] / league_totals['swing'].replace(0, np.nan)
+    league_totals['in_zone_rate'] = league_totals['in_zone'] / league_totals['pitch']
+    league_totals['chase_rate'] = league_totals['chase'] / league_totals['pitch']
+    
+    # Compute league-wide averages for each stat
+    league_averages = {
+        'release_speed': league_totals['release_speed'].mean(),
+        'whiff_rate': league_totals['whiff_rate'].mean(),
+        'in_zone_rate': league_totals['in_zone_rate'].mean(),
+        'chase_rate': league_totals['chase_rate'].mean()
+    }
+    
     colour_list_df = []
     for pt in df_group['pitch_type'].unique():
         colour_list_df_inner = []
@@ -444,25 +416,26 @@ def get_cell_colours(df_group: pd.DataFrame):
                 if np.isnan(value):
                     colour_list_df_inner.append('#ffffff')
                 elif tb == 'release_speed':
-                    normalize = mcolors.Normalize(vmin=df_group[tb].mean() * 0.95, vmax=df_group[tb].mean() * 1.05)
+                    # Normalize using league average
+                    normalize = mcolors.Normalize(vmin=league_averages[tb] * 0.95, vmax=league_averages[tb] * 1.05)
                     colour_list_df_inner.append(mcolors.to_hex(cmap_sum(normalize(value))))
                 else:
-                    normalize = mcolors.Normalize(vmin=df_group[tb].mean() * 0.7, vmax=df_group[tb].mean() * 1.3)
+                    # Normalize using league average for rates
+                    normalize = mcolors.Normalize(vmin=league_averages[tb] * 0.7, vmax=league_averages[tb] * 1.3)
                     colour_list_df_inner.append(mcolors.to_hex(cmap_sum(normalize(value))))
             else:
                 colour_list_df_inner.append('#ffffff')
         colour_list_df.append(colour_list_df_inner)
     return colour_list_df
 
-# Modified pitch_table to pass pitcher_name, team, and season
-def pitch_table(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, team: str, season: int, fontsize: int = 12):
+def pitch_table(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, team: str, season: int, full_df: pd.DataFrame, fontsize: int = 12):
     df_group, colour_list = df_grouping(df, pitcher_name, team, season)
     if df_group.empty:
         ax.text(0.5, 0.5, 'No pitch data available', ha='center', va='center', fontsize=12)
         ax.axis('off')
         return
 
-    colour_list_df = get_cell_colours(df_group)
+    colour_list_df = get_cell_colours(df_group, full_df, pitcher_name, team, season)
     df_plot = plot_pitch_format(df_group)
 
     table_plot = ax.table(cellText=df_plot.values, colLabels=table_columns, cellLoc='center',
@@ -486,7 +459,6 @@ def pitch_table(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, team: str, se
 
     ax.axis('off')
 
-# Modified pitching_dashboard to pass pitcher_name, team, and season to pitch_table
 def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: str, season: int, data_path: str):
     if df.empty:
         print(f"No data found for pitcher {pitcher_name} from {team} in {season}. Exiting dashboard creation.")
@@ -511,12 +483,8 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_left = fig.add_subplot(gs[:, 0])
     ax_right = fig.add_subplot(gs[:, -1])
 
-    # Add bold title in the header
-    #HERE IS TO CHANGE THE DATE ON TOP OF THE DASHBOARD 
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #!@@!!!
     date = df['Date'][df['Date'].idxmin()]
-    ax_header.text(0.5, 0.5, f"{pitcher_name} - {team} -{date}",
+    ax_header.text(0.5, 0.5, f"{pitcher_name} - {team} - {date}",
                    ha='center', va='center', fontsize=24, fontweight='bold')
     ax_header.axis('off')
 
@@ -532,10 +500,10 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     strike_zone_plot(df, ax_plot_1, pitcher_name, 'Left', 'Pitch Locations vs LHH')
     break_plot(df, ax_plot_2, pitcher_name)
     strike_zone_plot(df, ax_plot_3, pitcher_name, 'Right', 'Pitch Locations vs RHH')
-    pitch_table(df, ax_table, pitcher_name, team, season, fontsize=fontsize)
+    pitch_table(df, ax_table, pitcher_name, team, season, full_df=df, fontsize=fontsize)
 
     ax_footer.text(0, 1, 'By: Max Quirk @mqstats', ha='left', va='top', fontsize=24)
-    ax_footer.text(0.5, 1, 'Pitch Matrix Colour Coding Compares to League Average', ha='center', va='top', fontsize=16)
+    ax_footer.text(0.5, 1, 'Pitch Matrix Colour Coding Compares to League Average', ha='center', va='top', fontsize=10)
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
@@ -548,37 +516,7 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
 data_path = 'CornBelters/Data/BeltersRex6-11.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
-
-# Load the Yakkertech DataFrame
-dtypes = {
-    'Date' : str,
-    'Pitcher': str,
-    'PitcherTeam': str,
-    'TaggedPitchType': str,
-    'RelSpeed': float,
-    'HorzBreak': float,
-    'InducedVertBreak': float,
-    'SpinRate': float,
-    'RelSide': float,
-    'RelHeight': float,
-    'Extension': float,
-    'Swing?': float,
-    'Swing Strike?': float,
-    'Strike?': float,
-    'Chase?': float,
-    'PitchCall': str,
-    'PlayResult': str,
-    'Date': str,
-    'VertApprAngle' : float,
-    'BatterSide': str,
-    'PlateLocSide': float,
-    'PlateLocHeight': float,
-    'OutsOnPlay': float,
-    'RunsScored': float,
-    'KorBB': str
-    #'stuff+': float
-}
-
+# Define dtypes for reading CSV
 try:
     df = pd.read_csv(data_path, dtype=dtypes)
 except ValueError as e:
