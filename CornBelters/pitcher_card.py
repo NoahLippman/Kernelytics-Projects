@@ -326,7 +326,7 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         release_pos_x=('release_pos_x', 'mean'),
         release_pos_z=('release_pos_z', 'mean'),
         release_extension=('release_extension', 'mean'),
-        stuff_plus=('stuff+', 'mean'),
+       # stuff_plus=('stuff+', 'mean'),
         swing=('Swing?', 'sum'),
         whiff=('Swing Strike?', 'sum'),
         in_zone=('In Strike Zone?', 'sum'),
@@ -374,7 +374,7 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'release_pos_z': pitcher_data['release_pos_z'].mean(),
         'release_extension': pitcher_data['release_extension'].mean(),
         'swing': pitcher_data['Swing?'].sum(),
-        'stuff+' : pitcher_data['stuff+'].mean(),
+        #'stuff+' : pitcher_data['stuff+'].mean(),
         'whiff': pitcher_data['Swing Strike?'].sum(),
         'in_zone': pitcher_data['Strike?'].sum(),
         'chase': pitcher_data['Chase?'].sum(),
@@ -398,7 +398,7 @@ pitch_stats_dict = {
     'release_pos_x': {'table_header': '$\\bf{hRel}$', 'format': '.1f'},
     'release_pos_z': {'table_header': '$\\bf{vRel}$', 'format': '.1f'},
     'release_extension': {'table_header': '$\\bf{Ext.}$', 'format': '.1f'},
-    'stuff_plus': {'table_header': '$\\bf{Stuff+}$', 'format': '.1f'},
+    #'stuff_plus': {'table_header': '$\\bf{Stuff+}$', 'format': '.1f'},
     'whiff_rate': {'table_header': '$\\bf{Whiff\%}$', 'format': '.1%'},
     'in_zone_rate': {'table_header': '$\\bf{Zone\%}$', 'format': '.1%'},
     'chase_rate': {'table_header': '$\\bf{Chase\%}$', 'format': '.1%'}
@@ -417,7 +417,7 @@ table_columns = [
     'release_pos_x',
     'release_pos_z',
     'release_extension',
-    'stuff_plus',
+    #'stuff_plus',
     'whiff_rate',
     'in_zone_rate',
     'chase_rate'
@@ -539,13 +539,13 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./CornBelters/Cards/stuff+/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
+    filename = f"./CornBelters/Cards/6-11/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'Stuff+/cornbelters_stuff_processed.csv'
+data_path = 'CornBelters/Data/BeltersRex6-11.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 
@@ -575,8 +575,8 @@ dtypes = {
     'PlateLocHeight': float,
     'OutsOnPlay': float,
     'RunsScored': float,
-    'KorBB': str,
-    'stuff+': float
+    'KorBB': str
+    #'stuff+': float
 }
 
 try:

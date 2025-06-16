@@ -4,7 +4,7 @@ library(purrr)
 
 #Put your file path
 kcl_all_files <- list.files(
-  path = "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/kclData",
+  path = "C:/Users/maxim/Desktop/Kernelytics-Projects/kclData",
   pattern = "\\.csv$",
   full.names = TRUE
 )
@@ -12,7 +12,7 @@ kcl_all_files <- list.files(
 
 
 belters_all_files <- list.files(
-  path = "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/CornBeltersData",
+  path = "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBeltersData",
   pattern = "\\.csv$",
   full.names = TRUE
 )

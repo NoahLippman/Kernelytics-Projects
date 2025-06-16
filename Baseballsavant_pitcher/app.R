@@ -57,9 +57,14 @@ ui <- fluidPage(
   ),
   
   absolutePanel(
-    top = "15%", left = "2%", right = "2%", bottom = "5%",
+    top    = "5%", 
+    bottom = "5%",
+    left   = "30%",   
+    width  = "35%", 
     pitcherPercentilePlotUI("pitcherPercentileChart")
-  )
+
+  ),
+  
 )
 
 # Server
