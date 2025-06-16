@@ -5,8 +5,6 @@ output:
     latex_engine: xelatex
     keep_tex: false
     output_file: /Users/maxim/Desktop/output.pdf
-  html_document:
-    df_print: paged
 geometry: landscape
 header-includes:
 - \usepackage{booktabs}
