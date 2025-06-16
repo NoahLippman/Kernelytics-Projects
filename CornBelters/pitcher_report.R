@@ -1,14 +1,15 @@
-# Load required packages
+# Load required libraries
+library(knitr)
+library(kableExtra)
 library(dplyr)
-library(gridExtra)
+library(readxl)
 library(scales)
-library(grid)
 
 # Define color palettes
 higher_lower <- c("#780008", "#bd3e47", "#ffbabf", "#ffffff", "#E6FFE8", "#A2CEA6", "#00840D")
 lower_higher <- c("#00840D", "#A2CEA6", "#E6FFE8", "#ffbabf", "#ebebeb", "#bd3e47", "#780008")
 
-# Define thresholds
+# Define thresholds data frame
 thresholds <- data.frame(
   AvgFB = c(92, 91, 90, 89, 88),
   MaxVel = c(100, 99, 97, 96, 95),
@@ -28,28 +29,41 @@ thresholds <- data.frame(
   GB = c(45, 44, 41, 40, 39)
 )
 
-# Load data
-df <- read.csv("/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv") %>%
+# Read and process data
+df <- read.csv("C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/CornBelters/Data/2025.csv") %>%
   mutate(
     RelSpeed = as.numeric(as.character(RelSpeed))  # Ensure RelSpeed is numeric
   )
 
-# Filter and mutate data
+# Filter data
 df <- df %>%
   filter(
     PitcherTeam == 'Normal cornbelters' | PitcherTeam == 'Normal Cornbelters'
-  ) %>%
+  )
+
+df <- df %>%
   mutate(
-    PitcherTeam = ifelse(PitcherTeam == 'CCU_PRA' | PitcherTeam == 'COA_CHA', 'CCU', PitcherTeam)
-  ) %>%
+    PitcherTeam == 'Normal cornbelters'
+  )
+
+df <- df %>%
   filter(
-    !is.na(RelSpeed),
-    TaggedPitchType != 'Undefined',
+    !is.na(RelSpeed)
+  )
+
+df <- df %>%
+  filter(
+    TaggedPitchType != 'Undefined'
+  )
+
+df <- df %>%
+  filter(
     PitchCall != 'Undefined'
   ) %>%
   mutate(
     FBindicator = ifelse(TaggedPitchType == 'Fastball' | TaggedPitchType == 'Sinker', 1, 0),
-    OSindicator = ifelse(TaggedPitchType %in% c("Slider", "Cutter", "Curveball", "ChangeUp"), 1, 0),
+    OSindicator = ifelse(TaggedPitchType %in% c("Slider", "Cutter", "Curveball", "ChangeUp"), 
+                         1, 0),
     EarlyIndicator = ifelse(
       ((Balls == 0 & Strikes == 0 & PitchCall == "InPlay") |
          (Balls == 1 & Strikes == 0 & PitchCall == "InPlay") |
@@ -83,17 +97,20 @@ df <- df %>%
         PlateLocHeight >= 1.83 & PlateLocHeight <= 3.5, 
       1, 0),
     StrikeIndicator = ifelse(
-      PitchCall %in% c("StrikeSwinging", "StrikeCalled", "FoulBallNotFieldable", "FoulBall", "InPlay"), 
+      PitchCall %in% c("StrikeSwinging", "StrikeCalled", "FoulBall", "FoulBall", "InPlay"), 
       1, 0),
     WhiffIndicator = ifelse(
-      PitchCall == 'StrikeSwinging', 1, 0),
+      PitchCall == 'StrikeSwinging', 1, 0
+    ),
     SwingIndicator = ifelse(
       PitchCall %in% c("StrikeSwinging", "FoulBallNotFieldable", "FoulBall", "InPlay"), 
       1, 0),
     LHHindicator = ifelse(
-      BatterSide == 'Left', 1, 0),
+      BatterSide == 'Left', 1, 0
+    ),
     RHHindicator = ifelse(
-      BatterSide == 'Right', 1, 0),
+      BatterSide == 'Right', 1, 0
+    ),
     ABindicator = ifelse(
       PlayResult %in% c("Error", "FieldersChoice", "Out", "Single", "Double", "Triple", "HomeRun") | 
         KorBB == "Strikeout", 
@@ -113,16 +130,21 @@ df <- df %>%
     HBPIndicator = ifelse(
       PitchCall == 'HitByPitch', 1, 0),
     WalkIndicator = ifelse(
-      KorBB == 'Walk', 1, 0),
+      KorBB == 'Walk', 1, 0
+    ),
     BIPind = ifelse(
-      PitchCall == 'InPlay', 1, 0),
+      PitchCall == 'InPlay', 1, 0
+    ),
     SolidContact = ifelse(
-      (PitchCall == "In Play" & 
+      (PitchCall == "InPlay" & 
          ((ExitSpeed > 95 & Angle >= 0 & Angle <= 40) | 
             (ExitSpeed > 92 & Angle >= 8 & Angle <= 40))), 1, 0),
     HHindicator = ifelse(PitchCall == 'InPlay' & ExitSpeed > 95, 1, 0),
     biphh = ifelse(PitchCall == 'InPlay' & ExitSpeed > 15, 1, 0)
-  ) %>%
+  )
+
+# Additional mutations
+df <- df %>%
   mutate(
     FBstrikeind = ifelse(
       (PitchCall %in% c("StrikeSwinging", "StrikeCalled", "FoulBall", "FoulBallNotFieldable", "InPlay")) & 
@@ -140,7 +162,7 @@ df <- df %>%
       StrikeZoneIndicator == 1 | EdgeIndicator == 1, 
       1, 0),
     FPSindicator = ifelse(
-      PitchCall %in% c("StrikeCalled", "StrikeSwinging", "FoulBall", "InPlay") &
+      PitchCall %in% c("StrikeCalled", "StrikeSwinging", "FoulBallNotFieldable", "FoulBall", "InPlay") &
         (FPindicator == 1),
       1, 0),
     OutIndicator = ifelse(
@@ -152,7 +174,8 @@ df <- df %>%
     Zwhiffind = ifelse(
       WhiffIndicator == 1 & StrikeZoneIndicator == 1, 1, 0),
     Zswing = ifelse(
-      StrikeZoneIndicator == 1 & SwingIndicator == 1, 1, 0),
+      StrikeZoneIndicator == 1 & SwingIndicator == 1, 1, 0
+    ),
     GBindicator = ifelse(HitType == 'GroundBall', 1, 0),
     Chaseindicator = ifelse(SwingIndicator == 1 & StrikeZoneIndicator == 0, 1, 0),
     OutofZone = ifelse(StrikeZoneIndicator == 0, 1, 0),
@@ -171,37 +194,37 @@ df <- df %>%
 summary_data <- df %>%
   group_by(Pitcher) %>%
   summarize(
-    IP = sum(OutIndicator, na.rm = TRUE) / 3,  # NEW: Innings Pitched (outs / 3)
-    Pitches = n(),  # NEW: Number of Pitches (count of rows)
-    'Avg FB Velo' = round(
+    `Avg FB Velo` = round(
       ifelse(
         sum(TaggedPitchType %in% c("Fastball", "Sinker") & !is.na(RelSpeed)) > 0,
         mean(RelSpeed[TaggedPitchType %in% c("Fastball", "Sinker")], na.rm = TRUE),
         NA_real_
-      ), 1),
-    'Max FB Velo' = round(
+      ), 1
+    ),
+    `Max FB Velo` = round(
       ifelse(
         sum(TaggedPitchType %in% c("Fastball", "Sinker") & !is.na(RelSpeed)) > 0,
         max(RelSpeed[TaggedPitchType %in% c("Fastball", "Sinker")], na.rm = TRUE),
         NA_real_
-      ), 1),
-    'Strike %' = round(sum(PitchCall %in% c("StrikeCalled", "StrikeSwinging", "Foul", "InPlay")) / n(), 3) * 100,
-    'FB Strike %' = round(sum(FBstrikeind) / sum(FBindicator), 3) * 100,
-    'OS Strike %' = round(sum(OSstrikeind) / sum(OSindicator), 3) * 100,
-    'E+A %' = round((sum(EarlyIndicator, na.rm = TRUE) + sum(AheadIndicator, na.rm = TRUE)) / sum(PAindicator, na.rm = TRUE), 3) * 100,
-    '1PK %' = round(sum(FPSindicator) / sum(FPindicator), 3) * 100,
-    'Whiff %' = round(sum(WhiffIndicator) / sum(SwingIndicator), 3) * 100,
-    'IZ Whiff %' = round(sum(Zwhiffind, na.rm = TRUE) / sum(Zswing, na.rm = TRUE), 3) * 100,
-    'Chase %' = round(sum(Chaseindicator, na.rm = TRUE) / sum(OutofZone, na.rm = TRUE), 3) * 100,
-    'K %' = round(sum(KorBB == "Strikeout") / sum(PAindicator), 3) * 100,
-    'BB %' = round(sum(WalkIndicator) / sum(PAindicator), 3) * 100,
+      ), 1
+    ),
+    `Strike %` = round(sum(PitchCall %in% c("StrikeCalled", "StrikeSwinging", "Foul", "InPlay")) / n(), 3) * 100,
+    `FB Strike %` = round(sum(FBstrikeind) / sum(FBindicator), 3) * 100,
+    `OS Strike %` = round(sum(OSstrikeind) / sum(OSindicator), 3) * 100,
+    `E+A %` = round((sum(EarlyIndicator, na.rm = TRUE) + sum(AheadIndicator, na.rm = TRUE)) / sum(PAindicator, na.rm = TRUE), 3) * 100,
+    `1PK %` = round(sum(FPSindicator) / sum(FPindicator), 3) * 100,
+    `Whiff %` = round(sum(WhiffIndicator) / sum(SwingIndicator), 3) * 100,
+    `IZ Whiff %` = round(sum(Zwhiffind, na.rm = TRUE) / sum(Zswing, na.rm = TRUE), 3) * 100,
+    `Chase %` = round(sum(Chaseindicator, na.rm = TRUE) / sum(OutofZone, na.rm = TRUE), 3) * 100,
+    `K %` = round(sum(KorBB == "Strikeout") / sum(PAindicator), 3) * 100,
+    `BB %` = round(sum(WalkIndicator) / sum(PAindicator), 3) * 100,
     AVG = round(sum(HitIndicator) / sum(ABindicator), 3),
     OPS = round((sum(OnBaseindicator) / sum(PAindicator)) + (sum(totalbases) / sum(ABindicator)), 3),
-    'HH %' = round(sum(HHindicator, na.rm = TRUE) / sum(biphh, na.rm = TRUE), 3) * 100,
-    'GB %' = round(sum(GBindicator, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), 3) * 100
+    `HH %` = round(sum(HHindicator, na.rm = TRUE) / sum(biphh, na.rm = TRUE), 3) * 100,
+    `GB %` = round(sum(GBindicator, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), 3) * 100
   )
 
-# Define color palettes for table styling
+# Define color palettes for visualization
 red_white_green <- colorRampPalette(c("#E1463E", "white", "#00840D"))
 green_white_red <- colorRampPalette(c("#00840d", "white", "#E1463E"))
 
@@ -222,18 +245,20 @@ hhpal <- col_numeric(palette = green_white_red(54), domain = c(8, 33, 54))
 gbpal <- col_numeric(palette = red_white_green(100), domain = c(0, 50, 100))
 chasepal <- col_numeric(palette = red_white_green(31), domain = c(20, 26, 31))
 
-# Create summary_data2 with color assignments
+# Add color columns to summary data
 summary_data2 <- summary_data %>%
   arrange(desc(`Avg FB Velo`)) %>%
   mutate(
     Velocity_Color = case_when(
       `Avg FB Velo` < 82 ~ "#e1463e",
       `Avg FB Velo` > 98 ~ "#00840d",
-      TRUE ~ velocity_palette(`Avg FB Velo`)),
+      TRUE ~ velocity_palette(`Avg FB Velo`)
+    ),
     MaxColor = case_when(
       `Max FB Velo` < 85 ~ "#e1463e",
       `Max FB Velo` > 102 ~ "#00840d",
-      TRUE ~ maxvelopal(`Max FB Velo`)),
+      TRUE ~ maxvelopal(`Max FB Velo`)
+    ),
     StrikePerColor = case_when(
       `Strike %` < 40 ~ "#e1463e",
       `Strike %` > 75 ~ "#00840d",
@@ -247,54 +272,58 @@ summary_data2 <- summary_data %>%
       `OS Strike %` > 74 ~ "#00840d",
       TRUE ~ osstrpal(`OS Strike %`)),
     EPAcol = case_when(
-      `E+A %` < 40 ~ "#e1463e",
-      `E+A %` > 90 ~ "#00840d",
+      `E+A %` < 40 ~ '#e1463e',
+      `E+A %` > 90 ~ '#00840d',
       TRUE ~ epapal(`E+A %`)),
     FPScolor = case_when(
       `1PK %` < 25 ~ "#e1463e",
       `1PK %` > 82 ~ "#00840d",
       TRUE ~ fpspal(`1PK %`)),
     Whiffcolor = case_when(
-      `Whiff %` < 2 ~ "#e1463e",
-      `Whiff %` > 50 ~ "#00840d",
+      `Whiff %` < 2 ~ '#e1463e',
+      `Whiff %` > 50 ~ '#00840d',
       TRUE ~ whiffpal(`Whiff %`)),
     zwhiffcolor = case_when(
-      `IZ Whiff %` < 0 ~ "#e1463e",
-      `IZ Whiff %` > 40 ~ "#00840d",
+      `IZ Whiff %` < 0 ~ '#e1463e',
+      `IZ Whiff %` > 40 ~ '#00840d',
       TRUE ~ zonewhiff(`IZ Whiff %`)),
     Kcolor = case_when(
-      `K %` < 0 ~ "#e1463e",
-      `K %` > 45 ~ "#00840d",
+      `K %` < 0 ~ '#e1463e',
+      `K %` > 45 ~ '#00840d',
       TRUE ~ kpal(`K %`)),
     BBcolor = case_when(
       `BB %` < 0 ~ "#00840d",
       `BB %` > 35 ~ "#e1463e",
       TRUE ~ bbpal(`BB %`)),
     AVGcolor = case_when(
-      AVG < .1 ~ "#00840d",
-      AVG > .45 ~ "#e1463e",
-      TRUE ~ avgpal(AVG)),
+      AVG < .1 ~ '#00840d',
+      AVG > .45 ~ '#e1463e',
+      TRUE ~ avgpal(AVG)
+    ),
     OPScol = case_when(
-      OPS < .389 ~ "#00840d",
-      OPS > 1.368 ~ "#e1463e",
-      TRUE ~ opspal(OPS)),
+      OPS < .389 ~ '#00840d',
+      OPS > 1.368 ~ '#e1463e',
+      TRUE ~ opspal(OPS)
+    ),
     HHcol = case_when(
-      `HH %` < 8 ~ "#00840d",
-      `HH %` > 54 ~ "#e1463e",
-      TRUE ~ hhpal(`HH %`)),
+      `HH %` < 8 ~ '#00840d',
+      `HH %` > 54 ~ '#e1463e',
+      TRUE ~ hhpal(`HH %`)
+    ),
     GBcol = gbpal(`GB %`),
     chasecol = case_when(
-      `Chase %` < 20 ~ "#e1463e",
-      `Chase %` > 31 ~ "#00840d",
-      TRUE ~ chasepal(`Chase %`))
+      `Chase %` < 20 ~ '#e1463e',
+      `Chase %` > 31 ~ '#00840d',
+      TRUE ~ chasepal(`Chase %`)
+    )
   )
 
-# Define average row (note: not used in table but included for completeness)
+# Define NCAA average data
 average_row <- tibble(
   Pitcher = "NCAA Average",
   AvgFBVelo = 88.9,
   MaxFBVelo = 102.5,
-  StrikePct = paste0(60.7, '%'),
+  StrikePct = 60.7,
   FBStrikePct = 62.4,
   OSStrikePct = 58.6,
   FPSPct = 57.6,
@@ -304,17 +333,3 @@ average_row <- tibble(
   AVG = 0.278,
   OPS = 0.826
 )
-
-# Save table as PDF
-pdf(file = "/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/pitcher_reports/report.pdf", width = 11, height = 8.5)  # Landscape dimensions
-grid.newpage()
-grid.text("Pitching Leaders", x = 0.5, y = 0.95, gp = gpar(fontsize = 20, fontface = "bold"))
-grid.table(
-  summary_data2 %>% 
-    arrange(desc(`Avg FB Velo`)) %>%
-    select(Pitcher, IP, Pitches, `Avg FB Velo`, `Max FB Velo`, `Strike %`, `FB Strike %`, `OS Strike %`,  # NEW: Added IP, Pitches
-           `E+A %`, `1PK %`, `Whiff %`, `IZ Whiff %`, `Chase %`, `K %`, `BB %`, 
-           AVG, OPS, `HH %`, `GB %`),
-  theme = ttheme_default(base_size = 8)
-)
-dev.off()
