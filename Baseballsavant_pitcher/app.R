@@ -5,6 +5,8 @@ library(rlang)
 # Source modules
 source("AdvancedPitcherStatsModule.R")
 source("PitcherPercentilePlotModule.R")
+source("zoneChartModule.R")
+
 
 # Load data
 kclYakkertechData <- read_csv("KCLYakkertechData.csv")
@@ -62,9 +64,20 @@ ui <- fluidPage(
     left   = "30%",   
     width  = "35%", 
     pitcherPercentilePlotUI("pitcherPercentileChart")
-
   ),
-  
+  tags$div(
+    style = "
+          position: absolute;
+          bottom: 5%;
+          right: 2%;
+          width: 34%;
+          max-width: 500px;
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        ",
+    zoneChartUI("zoneChart")
+  )
 )
 
 # Server
@@ -86,6 +99,11 @@ server <- function(input, output, session) {
   pitcherPercentilePlotServer(
     id = "pitcherPercentileChart",
     player_data = player_data
+  )
+  zoneChartServer(
+    id          = "zoneChart",
+    data        = reactive(YakkertechData),
+    player_name = selected_pitcher
   )
 }
 
