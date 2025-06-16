@@ -46,7 +46,9 @@ corrections <- c(
   "Brayden  Windy" = "Brayden Windy",
   "Sammy Descarpentrie" = "Sam DesCarpentrie",
   "Kannan Kleine" = "Kannon Kleine",
-  "Nolan Mccrossin" = "Nolan McCrossin"
+  "Nolan Mccrossin" = "Nolan McCrossin",
+  "Luke Mcclure" = "Luke McClure",
+  "Brandown Ward" = "Brandon Ward"
 )
 
 fixNames <- function(df, column, lookup){
@@ -74,6 +76,19 @@ BeltersyakkertechData <- fixNames(BeltersyakkertechData, "Pitcher", corrections)
 
 Create columns for if it was a strike and if they swung
 ```{r}
+#Fix Play Result Walk and HBP Issue
+KCLyakkertechData <- KCLyakkertechData |>
+  mutate(
+    PlayResult = ifelse(!is.na(KorBB) & KorBB == "Walk", "Walk", PlayResult),
+    PlayResult = ifelse(!is.na(PitchCall) & PitchCall == "HitByPitch", "HitByPitch", PlayResult)
+  )
+
+BeltersyakkertechData <- BeltersyakkertechData |>
+  mutate(
+    PlayResult = ifelse(!is.na(KorBB) & KorBB == "Walk", "Walk", PlayResult),
+    PlayResult = ifelse(!is.na(PitchCall) & PitchCall == "HitByPitch", "HitByPitch", PlayResult)
+  )
+
 #Creates IsStrike and IsSwing columns for both dataframes
 KCLyakkertechData <- KCLyakkertechData |> 
   mutate(

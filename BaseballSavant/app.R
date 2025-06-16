@@ -7,6 +7,7 @@ source("zoneChartModule.R")
 source("SprayChart.R")
 source("advancedStatsModule.R")
 source("basicStatsModule.R")
+source("referenceStats.R")
 
 # Load data
 kclYakkertechData <- read_csv("KCLYakkertechData.csv")
@@ -23,46 +24,71 @@ playerDetails <- read_csv("playerDetails.csv")
 
 # UI
 ui <- fluidPage(
-  style = "position: relative; height: 100vh;",
+  style = "padding: 0; margin: 0; overflow-x: hidden;",
   
-  absolutePanel(
-    top   = "5%", left = "2%", width = "250px",
-    selectInput(
-      inputId  = "selected_player",
-      label    = "Choose a player:",
-      choices  = sort(unique(YakkertechData$Batter)),
-      selected = NULL
+  div(
+    style = "min-height: 100vh; position: relative;",
+    
+    # Fixed player selector
+    absolutePanel(
+      top   = "5%", left = "2%", width = "250px",
+      selectInput(
+        inputId  = "selected_player",
+        label    = "Choose a player:",
+        choices  = sort(unique(YakkertechData$Batter)),
+        selected = NULL
+      )
+    ),
+    
+    # Team Logo and Team Name
+    absolutePanel(
+      top   = "0%",
+      right = "2%",
+      width = "200px",
+      uiOutput("teamDisplay")
+    ),
+    
+    # Basic Stats Panel
+    absolutePanel(
+      top    = "15%", 
+      left   = "2%",
+      width  = "26%",
+      basicStatsUI("profileChart")
+    ),
+    
+    # Advanced Stats
+    absolutePanel(
+      top    = "5%", 
+      bottom = "5%",
+      left   = "30%",   
+      width  = "35%", 
+      advancedStatsUI("advancedChart")
+    ),
+    
+    # Zone & Spray Chart
+    tags$div(
+      style = "
+        position: absolute;
+        bottom: 5%;
+        right: 2%;
+        width: 34%;
+        max-width: 500px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      ",
+      sprayChartUI("sprayChart"),
+      zoneChartUI("zoneChart")
     )
   ),
   
-  absolutePanel(
-    top    = "15%", 
-    left   = "2%",
-    width  = "26%",
-    basicStatsUI("profileChart")
-  ),
-  
-  absolutePanel(
-    top    = "5%", 
-    bottom = "5%",
-    left   = "30%",   
-    width  = "35%", 
-    advancedStatsUI("advancedChart")
-  ),
-  
-  tags$div(
+  # Scrollable section below fixed panels
+  div(
     style = "
-      position: absolute;
-      bottom: 5%;
-      right: 2%;
-      width: 34%;
-      max-width: 500px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+      margin-top: 0vh;
+      padding: 20px 5%;
     ",
-    sprayChartUI("sprayChart"),
-    zoneChartUI("zoneChart")
+    referenceStatsUI("refStats")
   )
 )
 
@@ -82,7 +108,8 @@ server <- function(input, output, session) {
         name       = Name,
         position   = Position,
         college    = College,
-        side       = Side
+        side       = Side,
+        team       = Team
       ) %>%
       slice(1)
   })
@@ -98,15 +125,39 @@ server <- function(input, output, session) {
   #Get player photos
   action_photo <- reactive({
     normalizePath(
-      file.path("www", "actions", paste0(selected_player(), "_action.png")),
+      file.path("www", "actions", paste0(selected_player(), "_action.jpg")),
       mustWork = FALSE
     )
   })
   
   headshot_photo <- reactive({
     normalizePath(
-      file.path("www", "headshots", paste0(selected_player(), "_headshot.png")),
+      file.path("www", "headshots", paste0(selected_player(), "_headshot.jpg")),
       mustWork = FALSE
+    )
+  })
+  
+  #Get Team Display and Logo
+  output$teamDisplay <- renderUI({
+    req(player_details())
+    
+    team_name <- player_details()$team
+    logo_src  <- paste0(team_name, ".png")
+    
+    div(
+      style = "
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 20px;
+      padding: 5px;
+    ",
+
+      # Logo
+      tags$img(
+        src   = logo_src,
+        style = "height: 130px; max-width: 130px; object-fit: contain;"
+      )
     )
   })
   
@@ -117,6 +168,15 @@ server <- function(input, output, session) {
     stats_df     = player_stats,
     action_img   = action_photo,
     headshot_img = headshot_photo
+  )
+  
+  #Reference Stats Server
+  referenceStatsServer(
+    id = "refStats",
+    stats_df = reactive({
+      AdvancedData %>%
+        filter(Batter == selected_player())
+    })
   )
   
   #Get advanced stats plot

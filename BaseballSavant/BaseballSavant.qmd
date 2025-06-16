@@ -7,7 +7,6 @@ format: html
 library(tidyverse)
 library(mgcv)
 library(purrr)
-library(jsonlite)
 ```
 
 Load in Data
@@ -271,16 +270,126 @@ belters_advanced_by_batter <- belters_advanced_by_batter |>
   mutate(
     HR = parse_double(HR),
     SB = replace_na(SB, 0)
+  ) |> 
+  mutate(
+    HR = replace_na(HR, 0)
   )
 
 ```
 
-Put in new xWOBA con
+Function to calculate advanced reference stats
 ```{r}
+#Calculate League OBP and League SLG
+KCLBasicStats <- KCLBasicStats |> 
+  mutate(
+    `1B` = H - `2B` - `3B` - HR,
+  )
+
+leagueSums <- KCLBasicStats |> 
+  summarize(pa_sum = sum(PA),
+            ab_sum = sum(AB),
+            bb_sum = sum(BB),
+            hbp_sum = sum(HBP),
+            singleSum = sum(`1B`),
+            doubleSum = sum(`2B`),
+            tripleSum = sum(`3B`),
+            hrSum = sum(HR),
+            on_base_sum = sum(H) + sum(BB) + sum(HBP),
+            tb_sum = sum(TB),
+            runsSum = sum(R),
+            league_OBP = on_base_sum / pa_sum,
+            league_SLG = tb_sum / ab_sum,
+            league_wOBA = (.69*bb_sum + .72*hbp_sum + .89*singleSum + 1.27*doubleSum + 1.62*tripleSum + 2.1*hrSum) / pa_sum,
+            wOBA_Scale = (.69*bb_sum + .72*hbp_sum + .89*singleSum + 1.27*doubleSum + 1.62*tripleSum + 2.1*hrSum) / runsSum,
+            runsPerPA = runsSum / pa_sum
+  )
+
+leagueOBP <- leagueSums |>  pull(league_OBP)
+leagueSLG <- leagueSums |>  pull(league_SLG)
+leagueWOBA <- leagueSums |>  pull(league_wOBA)
+wOBA_Scale <- leagueSums |> pull(wOBA_Scale)
+leagueRunsPerPA <- leagueSums |> pull(runsPerPA)
+
+#Calculate OPS+
+KCLReferenceStats <- KCLBasicStats |> 
+  mutate(
+    `OPS+` = round(100 * ((OBP / leagueOBP) + (SLG / leagueSLG) - 1),0)
+  )
+
+
+#Calculate wOBA
+KCLReferenceStats <- KCLReferenceStats |> 
+  mutate(
+    wOBA = (.69*BB + .72*HBP + .89*`1B` + 1.27*`2B` + 1.62*`3B` + 2.1*HR) / PA
+  )
+
+#Calculate wRC+
+KCLReferenceStats <- KCLReferenceStats |> 
+  mutate(
+    `wRC+` = round((
+      ( (wOBA - leagueWOBA) / wOBA_Scale + leagueRunsPerPA ) / leagueRunsPerPA
+    ) * 100,0)
+  )
+
+
+#Calculate Offensive WAR
+KCLReferenceStats <- KCLReferenceStats |> 
+  mutate(
+    wRAA = (wOBA - leagueWOBA) / wOBA_Scale * PA,
+    rRAA = (.252 - leagueWOBA) / wOBA_Scale * PA,
+    oRAR = wRAA - rRAA,
+    oWAR = oRAR / 11
+  )
+
+#Select Columns We Need
+KCLReferenceStats <- KCLReferenceStats |> 
+  select(-HBP, -`1B`, -wRAA, -rRAA, -oRAR, -AVG, -OBP, -SLG, -OPS, -PA, -AB, -H, -HR, -SB, -CS) |> 
+  mutate(
+    wOBA = round(wOBA,3),
+    oWAR = round(oWAR, 1)
+  )
+
+KCLSavantData <- KCLSavantData |> 
+  left_join(KCLReferenceStats, by = "Batter")
+
+
+```
+
+
+
+Put in new xWOBA
+```{r}
+#Fix xWOBA file player names
+corrections <- c(
+  "Justin Trusner" = "Jacob Trusner",
+  "Brooks Neuhof" = "Brooks Neuhoff",
+  "Teagan Disharoom" = 	"Teagan Disharoon",
+  "Kam  Ross" = "Kam Ross",
+  "Brayden  Windy" = "Brayden Windy",
+  "Sammy Descarpentrie" = "Sam DesCarpentrie",
+  "Kannan Kleine" = "Kannon Kleine",
+  "Nolan Mccrossin" = "Nolan McCrossin",
+  "Luke Mcclure" = "Luke McClure",
+  "Brandown Ward" = "Brandon Ward"
+)
+
+fixNames <- function(df, column, lookup){
+  old_values <- df[[column]]
+  needs_fix <- old_values %in% names(lookup)
+  df[[column]] <- ifelse(
+    needs_fix,
+    lookup[old_values],
+    old_values
+  )
+  return(df)
+}
+
 xWOBA_2 <- read_csv("YakkertechData/xWOBA_KCL/Hitter_XWOBA.csv") |> 
   select(Batter, xWOBA, Percentile) |> 
   rename(xWOBA_2 = xWOBA,
          xWOBA_2_pct = Percentile)
+
+#xWOBA_2 <- fixNames(xWOBA_2, "Batter", corrections)
 
 KCLSavantData <- KCLSavantData |> 
   left_join(xWOBA_2, by = "Batter")
@@ -290,8 +399,21 @@ xWOBA_2 <- read_csv("YakkertechData/xWOBA_CornBelters/xWOBA_Data_Belters.csv") |
   rename(xWOBA_2 = xWOBA,
          xWOBA_2_pct = Percentile)
 
+#xWOBA_2 <- fixNames(xWOBA_2, "Batter", corrections)
+
 BeltersSavantData <- belters_advanced_by_batter |> 
   left_join(xWOBA_2, by = "Batter")
+```
+Create Rolling xWOBA
+```{r}
+library(lubridate)
+
+yakkertechData |> 
+  filter(Batter == "Kaileb Hackman") |> 
+  filter(!is.na(PlayResult)) |> 
+  mutate(Date = mdy(Date)) |> 
+  arrange(Date, Time)
+
 
 ```
 
