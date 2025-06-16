@@ -8,16 +8,11 @@ source("SprayChart.R")
 source("advancedStatsModule.R")
 source("basicStatsModule.R")
 source("referenceStats.R")
+source("rollingXWOBAModule.R")
 
 
 # Load data
-kclYakkertechData <- read_csv("KCLyakkertechData.csv")
-beltersYakkertechData <- read_csv("BeltersyakkertechData.csv")
 YakkertechData <- read_csv("yakkertechData.csv")
-
-
-kclAdvancedData <- read_csv("KCLSavantData.csv")
-beltersAdvancedData <- read_csv("BeltersSavantData.csv")
 AdvancedData <- read_csv("SavantData.csv")
 
 playerDetails <- read_csv("playerDetails.csv")
@@ -34,15 +29,15 @@ ui <- fluidPage(
           left: 35%;
           width: 400px
         ",
-      wellPanel(
-        h2("Baseball Savant Login", style = "text-align: center;"),
-        textInput("user", "Username", value = ""),
-        textInput("password", "Password", value = ""),
-        actionButton("go_to_main_page", "Enter")
-      )
+        wellPanel(
+          h2("Baseball Savant Login", style = "text-align: center;"),
+          textInput("user", "Username", value = ""),
+          textInput("password", "Password", value = ""),
+          actionButton("go_to_main_page", "Enter")
+        )
     )
   ),
-      
+  
   style = "padding: 0; margin: 0; overflow-x: hidden;",
   
   conditionalPanel(
@@ -65,13 +60,13 @@ ui <- fluidPage(
       absolutePanel(
         top   = "0%",
         right = "2%",
-        width = "200px",
+        width = "230px",
         uiOutput("teamDisplay")
       ),
       
       # Basic Stats Panel
       absolutePanel(
-        top    = "15%", 
+        top    = "13%", 
         left   = "2%",
         width  = "26%",
         basicStatsUI("profileChart")
@@ -80,17 +75,26 @@ ui <- fluidPage(
       # Advanced Stats
       absolutePanel(
         top    = "5%", 
-        bottom = "5%",
+        bottom = "2%",
         left   = "30%",   
         width  = "35%", 
         advancedStatsUI("advancedChart")
+      ),
+      
+      # Rolling XWOBA
+      absolutePanel(
+        top = "61%",
+        bottom = "2%",
+        left   = "2%",   
+        width  = "26%", 
+        rollingXWOBAUI("rollingChart")
       ),
       
       # Zone & Spray Chart
       tags$div(
         style = "
           position: absolute;
-          bottom: 5%;
+          bottom: 2%;
           right: 2%;
           width: 34%;
           max-width: 500px;
@@ -135,10 +139,12 @@ server <- function(input, output, session) {
     req(input$user)
     if(tolower(input$user) != "admin"){
       YakkertechData %>%
-        filter(BatterTeam == paste("Kcl", tolower(input$user), "2025"))
+        filter(BatterTeam == paste("Kcl", tolower(input$user), "2025")) |> 
+        arrange(Batter)
     }
     else{
-      YakkertechData
+      YakkertechData |> 
+        arrange(Batter)
     }
   })
   
@@ -208,7 +214,7 @@ server <- function(input, output, session) {
       gap: 20px;
       padding: 5px;
     ",
-
+      
       # Logo
       tags$img(
         src   = logo_src,
@@ -235,13 +241,20 @@ server <- function(input, output, session) {
     })
   )
   
+  #Get Rolling XWOBA Plot
+  rollingXWOBAServer(
+    id          = "rollingChart",
+    data_source = reactive(YakkertechData),
+    player_name = selected_player
+  )
+  
   #Get advanced stats plot
   advancedStatsServer(
     id          = "advancedChart",
     data_source = reactive(AdvancedData),
     player_name = selected_player,
     stat_cols = c("avgExitVelo", "maxExitVelo", "LASweetSpot", "hardHitPct", "squaredUpPct",
-                  "kPct", "bbPct", "whiffPct", "chasePct", "xBA", "xSLG", "xWOBA_2",
+                  "kPct", "bbPct", "whiffPct", "chasePct", "xBA", "xSLG", "xWOBA", "xWOBA_2",
                   "xBABIP", "babip")
   )
   
