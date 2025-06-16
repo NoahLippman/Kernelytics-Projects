@@ -9,10 +9,11 @@ source("advancedStatsModule.R")
 source("basicStatsModule.R")
 source("referenceStats.R")
 
+
 # Load data
-kclYakkertechData <- read_csv("KCLYakkertechData.csv")
-beltersYakkertechData <- read_csv("BeltersYakkertechData.csv")
-YakkertechData <- read_csv("YakkertechData.csv")
+kclYakkertechData <- read_csv("KCLyakkertechData.csv")
+beltersYakkertechData <- read_csv("BeltersyakkertechData.csv")
+YakkertechData <- read_csv("yakkertechData.csv")
 
 
 kclAdvancedData <- read_csv("KCLSavantData.csv")
@@ -24,76 +25,133 @@ playerDetails <- read_csv("playerDetails.csv")
 
 # UI
 ui <- fluidPage(
+  
+  conditionalPanel(
+    condition = "!output.login_successful",
+    div(style = "
+          position: absolute;
+          top: 30%;
+          left: 35%;
+          width: 400px
+        ",
+      wellPanel(
+        h2("Baseball Savant Login", style = "text-align: center;"),
+        textInput("user", "Username", value = ""),
+        textInput("password", "Password", value = ""),
+        actionButton("go_to_main_page", "Enter")
+      )
+    )
+  ),
+      
   style = "padding: 0; margin: 0; overflow-x: hidden;",
   
-  div(
-    style = "min-height: 100vh; position: relative;",
-    
-    # Fixed player selector
-    absolutePanel(
-      top   = "5%", left = "2%", width = "250px",
-      selectInput(
-        inputId  = "selected_player",
-        label    = "Choose a player:",
-        choices  = sort(unique(YakkertechData$Batter)),
-        selected = NULL
+  conditionalPanel(
+    condition = "output.login_successful",
+    div(
+      style = "min-height: 100vh; position: relative;",
+      
+      # Fixed player selector
+      absolutePanel(
+        top   = "5%", left = "2%", width = "250px",
+        selectInput(
+          inputId  = "selected_player",
+          label    = "Choose a player:",
+          choices  = NULL,
+          selected = NULL
+        )
+      ),
+      
+      # Team Logo and Team Name
+      absolutePanel(
+        top   = "0%",
+        right = "2%",
+        width = "200px",
+        uiOutput("teamDisplay")
+      ),
+      
+      # Basic Stats Panel
+      absolutePanel(
+        top    = "15%", 
+        left   = "2%",
+        width  = "26%",
+        basicStatsUI("profileChart")
+      ),
+      
+      # Advanced Stats
+      absolutePanel(
+        top    = "5%", 
+        bottom = "5%",
+        left   = "30%",   
+        width  = "35%", 
+        advancedStatsUI("advancedChart")
+      ),
+      
+      # Zone & Spray Chart
+      tags$div(
+        style = "
+          position: absolute;
+          bottom: 5%;
+          right: 2%;
+          width: 34%;
+          max-width: 500px;
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        ",
+        sprayChartUI("sprayChart"),
+        zoneChartUI("zoneChart")
       )
     ),
     
-    # Team Logo and Team Name
-    absolutePanel(
-      top   = "0%",
-      right = "2%",
-      width = "200px",
-      uiOutput("teamDisplay")
-    ),
-    
-    # Basic Stats Panel
-    absolutePanel(
-      top    = "15%", 
-      left   = "2%",
-      width  = "26%",
-      basicStatsUI("profileChart")
-    ),
-    
-    # Advanced Stats
-    absolutePanel(
-      top    = "5%", 
-      bottom = "5%",
-      left   = "30%",   
-      width  = "35%", 
-      advancedStatsUI("advancedChart")
-    ),
-    
-    # Zone & Spray Chart
-    tags$div(
+    # Scrollable section below fixed panels
+    div(
       style = "
-        position: absolute;
-        bottom: 5%;
-        right: 2%;
-        width: 34%;
-        max-width: 500px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
+        margin-top: 0vh;
+        padding: 20px 5%;
       ",
-      sprayChartUI("sprayChart"),
-      zoneChartUI("zoneChart")
+      referenceStatsUI("refStats")
     )
-  ),
-  
-  # Scrollable section below fixed panels
-  div(
-    style = "
-      margin-top: 0vh;
-      padding: 20px 5%;
-    ",
-    referenceStatsUI("refStats")
   )
 )
 
 # Server
 server <- function(input, output, session) {
+  # Process Login Info
+  permissions <- c("bobcats8729", "groundsloths4528", "merchants9253", "bluecaps0827", "admin1928")
+  
+  login_status <- reactiveVal(FALSE)
+  
+  observeEvent(input$go_to_main_page, {
+    creds <- paste0(tolower(input$user), input$password)
+    login_status(creds %in% permissions)
+  })
+  
+  output$login_successful <- reactive({
+    login_status()
+  })
+  
+  #Filter Dataset
+  filtered_data <- reactive({
+    req(input$user)
+    if(tolower(input$user) != "admin"){
+      YakkertechData %>%
+        filter(BatterTeam == paste("Kcl", tolower(input$user), "2025"))
+    }
+    else{
+      YakkertechData
+    }
+  })
+  
+  observeEvent(filtered_data(), {
+    updateSelectInput(
+      session,
+      "selected_player",
+      choices = unique(filtered_data()$Batter)
+    )
+  })
+  
+  outputOptions(output, "login_successful", suspendWhenHidden = FALSE)
+  
   #Get the player
   selected_player <- reactive({
     req(input$selected_player)
@@ -139,8 +197,6 @@ server <- function(input, output, session) {
   
   #Get Team Display and Logo
   output$teamDisplay <- renderUI({
-    req(player_details())
-    
     team_name <- player_details()$team
     logo_src  <- paste0(team_name, ".png")
     
