@@ -16,7 +16,7 @@ plot_pitcher_percentile_bars <- function(player_data, stat_cols, display_names) 
         as.character(Stat) %in% c("Chase%", "Whiff%", "K%", "BB%", "Hard-Hit%", "GB%", "Barrel%") ~ Value * 100,
         TRUE ~ Value
       ),
-      Value = round(Value, 2),
+      Value = round(Value, 3),
       Color = case_when(
         Percentile >= 85 ~ "#d82129",
         Percentile >= 70 ~ "#d77768",

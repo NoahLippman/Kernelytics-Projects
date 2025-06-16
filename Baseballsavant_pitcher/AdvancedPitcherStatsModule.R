@@ -8,7 +8,7 @@ getAdvancedPitching <- function(df, name) {
   
   safe_mean <- function(x) {
     val <- mean(x, na.rm = TRUE)
-    if (is.nan(val) || is.na(val)) NA_real_ else val
+    if (is.nan(val) || is.na(val)) NA_real_ else round(val, digits = 3) # Round to 3 decimals
   }
   
   FastballVelo <- df %>%
@@ -25,47 +25,48 @@ getAdvancedPitching <- function(df, name) {
     filter(!is.na(ExitSpeed)) %>%
     summarize(val = mean(ExitSpeed >= 95, na.rm = TRUE)) %>%
     pull(val) %>%
-    { if (is.nan(.) || is.na(.)) NA_real_ else . }
+    { if (is.nan(.) || is.na(.)) NA_real_ else round(., digits = 3) } # Round to 3 decimals
   
   k_data <- df %>%
     filter(!is.na(PlayResult) | !is.na(KorBB))
   total_PA <- nrow(k_data)
   strikeouts <- sum(k_data$PlayResult %in% c("StrikeoutLooking", "StrikeoutSwinging"), na.rm = TRUE)
-  kPct <- if (total_PA == 0) NA_real_ else strikeouts / total_PA
+  kPct <- if (total_PA == 0) NA_real_ else round(strikeouts / total_PA, digits = 3) # Round to 3 decimals
   
   walks <- sum(k_data$KorBB == "Walk", na.rm = TRUE)
-  bbPct <- if (total_PA == 0) NA_real_ else walks / total_PA
+  bbPct <- if (total_PA == 0) NA_real_ else round(walks / total_PA, digits = 3) # Round to 3 decimals
   
   whiffPct <- df %>%
     filter(!is.na(PitchCall)) %>%
     filter(!PitchCall %in% c("BallCalled", "HitByPitch", "StrikeCalled", "Ball")) %>%
     summarize(val = mean(PitchCall == "StrikeSwinging", na.rm = TRUE)) %>%
     pull(val) %>%
-    { if (is.nan(.) || is.na(.)) NA_real_ else . }
+    { if (is.nan(.) || is.na(.)) NA_real_ else round(., digits = 3) } # Round to 3 decimals
   
   chasePct <- df %>%
     filter(IsStrike == FALSE) %>%
     summarize(val = mean(IsSwing == TRUE, na.rm = TRUE)) %>%
     pull(val) %>%
-    { if (is.nan(.) || is.na(.)) NA_real_ else . }
+    { if (is.nan(.) || is.na(.)) NA_real_ else round(., digits = 3) } # Round to 3 decimals
   
   groundBallPct <- df %>%
     filter(!is.na(HitType)) %>%
     summarize(val = mean(HitType == "GroundBall", na.rm = TRUE)) %>%
     pull(val) %>%
-    { if (is.nan(.) || is.na(.)) NA_real_ else . }
-  xBA  <- df %>%
+    { if (is.nan(.) || is.na(.)) NA_real_ else round(., digits = 3) } # Round to 3 decimals
+  
+  xBA <- df %>%
     filter(!is.na(PlayResult)) %>%
-    summarize(val = mean(predicted_xba,na.rm = TRUE)) %>% 
-    pull(val)  %>%
-    { if (is.nan(.) || is.na(.)) NA_real_ else . }
+    summarize(val = mean(predicted_xba, na.rm = TRUE)) %>% 
+    pull(val) %>%
+    { if (is.nan(.) || is.na(.)) NA_real_ else round(., digits = 3) } # Round to 3 decimals
   
   BarrelPct <- if ("Angle" %in% names(df)) {
     df %>%
       filter(!is.na(ExitSpeed), !is.na(Angle)) %>%
-      summarize(val = mean(ExitSpeed > 90 & Angle >= 26 & Angle <= 30, na.rm = TRUE)) %>%
+      summarize(val = mean(ExitSpeed > 88 & Angle >= 26 & Angle <= 30, na.rm = TRUE)) %>%
       pull(val) %>%
-      { if (is.nan(.) || is.na(.)) NA_real_ else . }
+      { if (is.nan(.) || is.na(.)) NA_real_ else round(., digits = 3) } # Round to 3 decimals
   } else {
     NA_real_
   }
@@ -130,11 +131,12 @@ advancedPitcherStatsServer <- function(id, data_source, pitcher_name) {
         return(NULL)
       }
       
-      # Ensure numeric columns
+      # Ensure numeric columns and round to 3 decimals
       numeric_cols <- c("xBA", "FastballVelo", "avgExitVelo", "hardHitPct", 
                         "kPct", "bbPct", "whiffPct", "chasePct", "groundBallPct", "BarrelPct")
       advanced_by_pitcher <- advanced_by_pitcher %>%
-        mutate(across(all_of(numeric_cols), as.numeric))
+        mutate(across(all_of(numeric_cols), as.numeric)) %>%
+        mutate(across(all_of(numeric_cols), ~ round(., digits = 3))) # Round metrics to 3 decimals
       
       # Remove pitchers with all NA metrics (excluding Pitcher column)
       advanced_by_pitcher <- advanced_by_pitcher %>%
@@ -149,7 +151,7 @@ advancedPitcherStatsServer <- function(id, data_source, pitcher_name) {
       message("Metrics computed for ", nrow(advanced_by_pitcher), " pitchers: ", 
               paste(advanced_by_pitcher$Pitcher, collapse = ", "))
       
-      # Compute percentiles
+      # Compute percentiles and round to 3 decimals
       invert_cols <- c("bbPct", "hardHitPct", "BarrelPct", "xBA")
       non_invert_cols <- setdiff(numeric_cols, invert_cols)
       
@@ -157,12 +159,12 @@ advancedPitcherStatsServer <- function(id, data_source, pitcher_name) {
         mutate(
           across(
             all_of(non_invert_cols),
-            ~ if_else(is.na(.), NA_real_, dplyr::percent_rank(.) * 100),
+            ~ if_else(is.na(.), NA_real_, round(dplyr::percent_rank(.) * 100, digits = 3)), # Round to 3 decimals
             .names = "{.col}_pct"
           ),
           across(
             all_of(invert_cols),
-            ~ if_else(is.na(.), NA_real_, dplyr::percent_rank(-.) * 100),
+            ~ if_else(is.na(.), NA_real_, round(dplyr::percent_rank(-.) * 100, digits = 3)), # Round to 3 decimals
             .names = "{.col}_pct"
           ),
           across(
