@@ -89,6 +89,37 @@ BeltersyakkertechData <- BeltersyakkertechData |>
       PitchCall == "Foul"
   )
 
+KCLyakkertechData <- KCLyakkertechData |> 
+  mutate(
+    zone = case_when(
+      PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide >= -1 & PlateLocSide <= -.3333333           ~ 1,
+      PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333      ~ 2,
+      PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide > .3333333 & PlateLocSide <= 1              ~ 3,
+      PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide >= -1 & PlateLocSide <= -.3333333      ~ 4,
+      PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333 ~ 5,
+      PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide > .3333333 & PlateLocSide <= 1         ~ 6,
+      PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide >= -1 & PlateLocSide <= -.3333333          ~ 7,
+      PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333     ~ 8,
+      PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide > .3333333 & PlateLocSide <= 1             ~ 9,
+      TRUE ~ NA_integer_
+    )
+  )
+
+BeltersyakkertechData <- BeltersyakkertechData |> 
+  mutate(
+    zone = case_when(
+      PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide >= -1 & PlateLocSide <= -.3333333           ~ 3,
+      PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333      ~ 2,
+      PlateLocHeight > 2.833333 & PlateLocHeight <= 3.5 & PlateLocSide > .3333333 & PlateLocSide <= 1              ~ 1,
+      PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide >= -1 & PlateLocSide <= -.3333333      ~ 6,
+      PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333 ~ 5,
+      PlateLocHeight > 2.1666666 & PlateLocHeight <= 2.833333 & PlateLocSide > .3333333 & PlateLocSide <= 1         ~ 4,
+      PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide >= -1 & PlateLocSide <= -.3333333          ~ 9,
+      PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide > -.3333333 & PlateLocSide <= .3333333     ~ 8,
+      PlateLocHeight >= 1.5 & PlateLocHeight <= 2.1666666 & PlateLocSide > .3333333 & PlateLocSide <= 1             ~ 7,
+      TRUE ~ NA_integer_
+    )
+  )
 
 KCLyakkertechData <- KCLyakkertechData |> 
   mutate(
@@ -129,7 +160,7 @@ BeltersyakkertechData <- BeltersyakkertechData |>
   )
 
 
-savant <- read_csv("savantData25.csv")
+savant <- read_csv("C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/Baseballsavant_pitcher/savantData25.csv")
 
 set.seed(42)
 
