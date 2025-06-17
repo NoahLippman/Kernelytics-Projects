@@ -160,7 +160,7 @@ def lineup_card(file_name_input, lineup_indices, players):
     print(lineup_card_df.to_string(index=False))
     return lineup_card_df
 
-def find_best_lineup(players, game_T_matrix, max_players=20):
+def find_best_lineup(players, game_T_matrix, max_players=30):
     if len(players) < 9 or len(players) > max_players:
         raise ValueError(f"Number of players must be between 9 and {max_players}.")
     
@@ -239,7 +239,7 @@ def find_best_lineup(players, game_T_matrix, max_players=20):
     return best_indices, best_xrv
 
 def main():
-    file_name_input = input("Please specify the file name containing player statistics (e.g., playerstats_vs_right.csv):\n")
+    file_name_input = 'stats_vs_right.csv'
     file_name_input = clean_csv(file_name_input)
     
     game_T_matrix, players = game_matrix(file_name_input)
@@ -248,7 +248,8 @@ def main():
     best_lineup_indices, expected_runs = find_best_lineup(players, game_T_matrix)
     
     print("\nThe following batting order...")
-    lineup_card(file_name_input, best_lineup_indices, players)
+    df = lineup_card(file_name_input, best_lineup_indices, players)
+    df.to_csv('cornbelters.csv',index=False)
     print(f"\nwill produce {expected_runs:.3f} expected runs per game!\n")
 
 if __name__ == "__main__":

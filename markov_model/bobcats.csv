@@ -1,0 +1,11 @@
+#,order,player_name,position
+1,8,Brady Veselack,if
+2,9,Colin Karr,if
+3,6,Sammy Driscoll,
+4,14,Ryan Theile,c
+5,2,Kaileb Hackman,if
+6,3,Kyler Lapp,if
+7,4,Nick Guidici,of
+8,5,Zach Pomatto,c
+9,1,Cody Delfavero,of
+will produce 6.254 expected runs per game!
