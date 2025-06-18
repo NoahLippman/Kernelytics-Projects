@@ -29,7 +29,7 @@ thresholds <- data.frame(
 )
 
 # Load data
-df <- read.csv("C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv") %>%
+df <- read.csv("/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv") %>%
   mutate(
     RelSpeed = as.numeric(as.character(RelSpeed))  # Ensure RelSpeed is numeric
   )
@@ -37,7 +37,7 @@ df <- read.csv("C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects
 # Filter and mutate data
 df <- df %>%
   filter(
-    PitcherTeam == 'Kcl bluecaps 2025'
+    PitcherTeam == 'Normal cornbelters' | PitcherTeam == 'Normal Cornbelters'
   ) %>%
   mutate(
     PitcherTeam = ifelse(PitcherTeam == 'CCU_PRA' | PitcherTeam == 'COA_CHA', 'CCU', PitcherTeam)
@@ -306,7 +306,7 @@ average_row <- tibble(
 )
 
 # Save table as PDF
-pdf(file = "GitHub/Kernelytics-Projects/KCL/pitcher_reports/bluecaps.pdf", width = 11, height = 8.5)  # Landscape dimensions
+pdf(file = "/Users/maxim/Desktop/Kernelytics-Projects/KCL/report.pdf", width = 11, height = 8.5)  # Landscape dimensions
 grid.newpage()
 grid.text("Pitching Leaders", x = 0.5, y = 0.95, gp = gpar(fontsize = 20, fontface = "bold"))
 grid.table(
