@@ -1,9 +1,20 @@
-### Plate Discipline Savant Table
+# ========================
+# Title:        Plate Discipline Table Generator
+# Description:  Creates a dataframe of plate discipline stats for a hitter
+# Author:       Cam Cischke
+# Created:      2025-06-18
+# Last Updated: 2025-06-18
+# Dependencies: tidyverse, readr
+# Usage: source this file, then run generate_df(player_name)
+# ========================
+
+### SETUP ------------------------------------------------------------------
+
 library(readr)
 library(tidyverse)
-library(ggplot2) # for testing
 
-### Data Import/Cleaning ----
+
+### DATA IMPORT/CLEANING ---------------------------------------------------
 
 
 kcl_files <- list.files("kclData/", pattern = "\\.csv$", full.names = T)
@@ -13,7 +24,7 @@ belt_files <- list.files("CornbeltersData/", pattern = "\\.csv$", full.names = T
 belt_data <- bind_rows(lapply(belt_files, read_csv))
 
 
-# Zone coordinate calculation values - easier to keep track of them this way
+# Zone coordinate calculation values
 
 box <- 2/3  # Width/height of one of the nine boxes of the zone
 ball <- 2.9 / 12 # Width of ball (2.9 in converted to feet)
@@ -53,7 +64,7 @@ yt_data <- bind_rows(kcl_data, belt_data) %>%
 
 
 
-# Tag Pitches based on zone location (third attempt YES FINALLY)
+### ZONE FILTERS --------------------------------------------------------------
 yt_data$zone <- case_when(
   # Meatball
   yt_data$PlateLocSide >= meatballx1 & yt_data$PlateLocSide <= meatballx2 &
@@ -76,7 +87,7 @@ yt_data$zone <- case_when(
 
 
 
-### HELPER FUNCTIONS ----
+### HELPER FUNCTIONS ---------------------------------------------------------
 
 # Get Player Data
 get_player <- function(player){
@@ -110,18 +121,25 @@ get_ball <- function(data){
   )
 }
 
+# Meatball
+get_meatball <- function(data){
+  return(
+    data %>%
+      filter(zone == "Meatball")
+  )
+}
 
 
 
-### DATAFRAME GENERATOR ----
+### DATAFRAME GENERATOR -------------------------------------------------------
 # Generates the table for output to Savant
 
-generate_df <- function(player){
+generate_plate_disc <- function(player){
   
   # Create df for output
-  result <- data.frame(matrix(nrow = 1, ncol = 13))
+  result <- data.frame(matrix(nrow = 1, ncol = 12))
   colnames(result) <- c(
-    "Name", "Pitches", "Zone %", "Zone Swing %", "Zone Contact %", "Chase %",
+    "Pitches", "Zone %", "Zone Swing %", "Zone Contact %", "Chase %",
     "Chase Contact %", "Edge %", "1st Pitch Swing %", "Swing %", "Whiff %", 
     "Meatball %", "Meatball Swing %"
   )
@@ -131,9 +149,10 @@ generate_df <- function(player){
   
   
   # Get pitches thrown in each zone
-  zone <- get_zone(data)
-  edge <- get_edge(data)
+  in_zone <- get_zone(data)
+  on_edge <- get_edge(data)
   ball <- get_ball(data)
+  meatball <- get_meatball(data)
   
   # Get total number of pitches
   n <- length(data$zone)
@@ -141,22 +160,22 @@ generate_df <- function(player){
   
   
   # Zone 
-  result$`Zone %` <- length(zone) / n
+  result$`Zone %` <- length(in_zone$zone) / n
   
   # Zone Swing 
-  result$`Zone Swing %` <- sum(zone$PitchCall %in% c(
+  result$`Zone Swing %` <- sum(in_zone$PitchCall %in% c(
     "StrikeSwinging", "Foul", "InPlay"
-  )) / length(zone)
+  )) / length(in_zone$zone)
   
   # Zone Contact 
-  result$`Zone Contact %` <- sum(zone$PitchCall %in% c(
+  result$`Zone Contact %` <- sum(in_zone$PitchCall %in% c(
     "Foul", "InPlay"
-  )) / length(zone)
+  )) / length(in_zone$zone)
   
   # Chase
   result$`Chase %` <- sum(ball$PitchCall %in% c(
     "StrikeSwinging", "Foul", "InPlay"
-  )) / length(ball)
+  )) / length(ball$zone)
   
   # Chase Contact
   result$`Chase Contact %` <- sum(ball$PitchCall %in% c(
@@ -164,7 +183,7 @@ generate_df <- function(player){
   )) / length(ball)
   
   # Edge 
-  result$`Edge %` <- length(edge) / n
+  result$`Edge %` <- length(on_edge$zone) / n
   
   # 1st Pitch Swing
   result$`1st Pitch Swing %` <- sum(
@@ -178,36 +197,26 @@ generate_df <- function(player){
   )) / n
   
   
+  # Whiff
+  result$`Whiff %` <- sum(data$PitchCall == "StrikeSwinging") /
+    sum(data$PitchCall %in% c("StrikeSwinging", "Foul", "InPlay"))
+  
+  # Meatball
+  result$`Meatball %` <- sum(data$zone == "Meatball") / n
+  
+  # Meatball Contact
+  result$`Meatball Swing %`  <- sum(meatball$PitchCall %in% c(
+    "StrikeSwinging", "Foul", "InPlay"
+  )) / length(meatball$zone)
+  
+  
+  
+  # Convert to percentages and round
+  percentage_cols <- colnames(result[-1]) # all except "Pitches"
+  result[percentage_cols] <- round(result[percentage_cols] * 100, 1)
+  
+  return(result)
 }
 
-
-
-
-
-
-
-
-
-### TESTING ----
-
-# Plot for testing
-ggplot(yt_data, aes(x = PlateLocSide, y = PlateLocHeight, color = zone)) +
-  geom_point(alpha = 0.7, size = 4) +
-  coord_fixed() +
-  labs(title = "Shadow Zone") +
-  theme_minimal() +
-  geom_rect(aes(xmin = zonex1, xmax = zonex2, ymin = zoney1, ymax = zoney2), 
-            color = "black",fill = NA) +
-  geom_rect(aes(xmin = edgex1, xmax = edgex2, ymin = edgey1, ymax = edgey2),
-            color = "black", fill = NA, linetype = "dashed") + 
-  geom_rect(aes(xmin = shadowx1, xmax = shadowx2, ymin = shadowy1),
-            ymax = shadowy2, color = 'black', fill =  NA, linetype = "dashed")
-
-
-
-# Function testing
-
-smith <- generate_df("Jackson Smith")
-smith
 
 
