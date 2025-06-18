@@ -5,7 +5,7 @@
 # Created:      2025-06-18
 # Last Updated: 2025-06-18
 # Dependencies: tidyverse, readr
-# Usage: source this file, then run generate_df(player_name)
+# Usage: run generate_plate_discipline_table(player_name, data)
 # ========================
 
 ### SETUP ------------------------------------------------------------------
@@ -14,7 +14,7 @@ library(readr)
 library(tidyverse)
 
 
-### DATA IMPORT/CLEANING ---------------------------------------------------
+### TEST DATA IMPORT/CLEANING ---------------------------------------------------
 
 
 kcl_files <- list.files("kclData/", pattern = "\\.csv$", full.names = T)
@@ -23,37 +23,6 @@ kcl_data <- bind_rows(lapply(kcl_files, read_csv))
 belt_files <- list.files("CornbeltersData/", pattern = "\\.csv$", full.names = T)
 belt_data <- bind_rows(lapply(belt_files, read_csv))
 
-
-# Zone coordinate calculation values
-
-box <- 2/3  # Width/height of one of the nine boxes of the zone
-ball <- 2.9 / 12 # Width of ball (2.9 in converted to feet)
-
-# Zone coords
-zonex1 <- -1
-zonex2 <- 1
-zoney1 <- 1.5
-zoney2 <- 3.5 
-
-# Calculate meatball coords
-meatballx1 <- zonex1 + box
-meatballx2 <- zonex2 - box
-meatbally1 <- zoney1 + box
-meatbally2 <- zoney2 - box
-
-# Calculate shadow zone coords
-shadowx1 <- zonex1 - ball
-shadowx2 <- zonex2 + ball
-shadowy1 <- zoney1 - ball
-shadowy2 <- zoney2 + ball
-
-edgex1 <- zonex1 + ball
-edgex2 <- zonex2 - ball
-edgey1 <- zoney1 + ball
-edgey2 <- zoney2 - ball
-
-
-# Calculate edge zone coords
 
 
 # Remove untagged pitches and no-ballflight pitches
@@ -64,34 +33,73 @@ yt_data <- bind_rows(kcl_data, belt_data) %>%
 
 
 
-### ZONE FILTERS --------------------------------------------------------------
-yt_data$zone <- case_when(
-  # Meatball
-  yt_data$PlateLocSide >= meatballx1 & yt_data$PlateLocSide <= meatballx2 &
-    yt_data$PlateLocHeight >= meatbally1 & yt_data$PlateLocHeight <= meatbally2
-  ~ "Meatball",
-  # Heart
-  yt_data$PlateLocSide >= edgex1 & yt_data$PlateLocSide <= edgex2 & 
-    yt_data$PlateLocHeight >= edgey1 & yt_data$PlateLocHeight <= edgey2
-  ~ "Heart",
-  # Edge
-  yt_data$PlateLocSide >= zonex1 & yt_data$PlateLocSide <= zonex2 &
-    yt_data$PlateLocHeight >= zoney1 & yt_data$PlateLocHeight <= zoney2
-  ~ "Edge",
-  # Shadow
-  yt_data$PlateLocSide >= shadowx1 & yt_data$PlateLocSide <= shadowx2 &
-    yt_data$PlateLocHeight >= shadowy1 & yt_data$PlateLocHeight <= shadowy2
-  ~ "Shadow",
-  TRUE ~ "Miss"
-)
+### CLASSIFY FUNCTION ---------------------------------------------------------
+# Classifies pitches based on zone location
+classify <- function(data){
+  
+  result <- data
+  
+  # Zone coordinate calculation values
+  
+  box <- 2/3  # Width/height of one of the nine boxes of the zone
+  ball <- 2.9 / 12 # Width of ball (2.9 in converted to feet)
+  
+  # Zone coords
+  zonex1 <- -1
+  zonex2 <- 1
+  zoney1 <- 1.5
+  zoney2 <- 3.5 
+  
+  # Calculate meatball coords
+  meatballx1 <- zonex1 + box
+  meatballx2 <- zonex2 - box
+  meatbally1 <- zoney1 + box
+  meatbally2 <- zoney2 - box
+  
+  # Calculate shadow zone coords
+  shadowx1 <- zonex1 - ball
+  shadowx2 <- zonex2 + ball
+  shadowy1 <- zoney1 - ball
+  shadowy2 <- zoney2 + ball
+  
+  edgex1 <- zonex1 + ball
+  edgex2 <- zonex2 - ball
+  edgey1 <- zoney1 + ball
+  edgey2 <- zoney2 - ball
+  
+  # Zone filters
+  result$zone <- case_when(
+    # Meatball
+    data$PlateLocSide >= meatballx1 & data$PlateLocSide <= meatballx2 &
+      data$PlateLocHeight >= meatbally1 & data$PlateLocHeight <= meatbally2
+    ~ "Meatball",
+    # Heart
+    data$PlateLocSide >= edgex1 & data$PlateLocSide <= edgex2 & 
+      data$PlateLocHeight >= edgey1 & data$PlateLocHeight <= edgey2
+    ~ "Heart",
+    # Edge
+    data$PlateLocSide >= zonex1 & data$PlateLocSide <= zonex2 &
+      data$PlateLocHeight >= zoney1 & data$PlateLocHeight <= zoney2
+    ~ "Edge",
+    # Shadow
+    data$PlateLocSide >= shadowx1 & data$PlateLocSide <= shadowx2 &
+      data$PlateLocHeight >= shadowy1 & data$PlateLocHeight <= shadowy2
+    ~ "Shadow",
+    TRUE ~ "Miss"
+  )
+  
+  return(result)
+  
+}
+
 
 
 
 ### HELPER FUNCTIONS ---------------------------------------------------------
 
 # Get Player Data
-get_player <- function(player){
-  return(filter(yt_data, Batter == player))
+get_player <- function(player, data){
+  return(filter(data, Batter == player))
 }
 
 
@@ -134,7 +142,7 @@ get_meatball <- function(data){
 ### DATAFRAME GENERATOR -------------------------------------------------------
 # Generates the table for output to Savant
 
-generate_plate_disc <- function(player){
+generate_plate_discipline_table <- function(player, df){
   
   # Create df for output
   result <- data.frame(matrix(nrow = 1, ncol = 12))
@@ -145,17 +153,24 @@ generate_plate_disc <- function(player){
   )
   
   # Get data for player
-  data <- get_player(player)
+  player_data <- get_player(player, df)
+  if(nrow(player_data) == 0){
+    warning(paste("No data found for player:", player))
+    return(NULL)
+  }
+  
+  # Classify data
+  player_data_zoned <- classify(player_data)
   
   
   # Get pitches thrown in each zone
-  in_zone <- get_zone(data)
-  on_edge <- get_edge(data)
-  ball <- get_ball(data)
-  meatball <- get_meatball(data)
+  in_zone <- get_zone(player_data_zoned)
+  on_edge <- get_edge(player_data_zoned)
+  ball <- get_ball(player_data_zoned)
+  meatball <- get_meatball(player_data_zoned)
   
   # Get total number of pitches
-  n <- length(data$zone)
+  n <- length(player_data_zoned$zone)
   result$Pitches <- n
   
   
@@ -165,49 +180,49 @@ generate_plate_disc <- function(player){
   # Zone Swing 
   result$`Zone Swing %` <- sum(in_zone$PitchCall %in% c(
     "StrikeSwinging", "Foul", "InPlay"
-  )) / length(in_zone$zone)
+  )) / nrow(in_zone)
   
   # Zone Contact 
   result$`Zone Contact %` <- sum(in_zone$PitchCall %in% c(
     "Foul", "InPlay"
-  )) / length(in_zone$zone)
+  )) / nrow(in_zone)
   
   # Chase
   result$`Chase %` <- sum(ball$PitchCall %in% c(
     "StrikeSwinging", "Foul", "InPlay"
-  )) / length(ball$zone)
+  )) / nrow(ball)
   
   # Chase Contact
   result$`Chase Contact %` <- sum(ball$PitchCall %in% c(
     "Foul", "InPlay"
-  )) / length(ball)
+  )) / nrow(ball)
   
   # Edge 
   result$`Edge %` <- length(on_edge$zone) / n
   
   # 1st Pitch Swing
   result$`1st Pitch Swing %` <- sum(
-    (data$PitchCall %in% c("StrikeSwinging", "Foul", "InPlay")) &
-      (data$PitchofPA == 1)
-  ) / sum(data$PitchofPA == 1)
+    (player_data_zoned$PitchCall %in% c("StrikeSwinging", "Foul", "InPlay")) &
+      (player_data_zoned$PitchofPA == 1)
+  ) / sum(player_data_zoned$PitchofPA == 1)
   
   # Swing
-  result$`Swing %` <- sum(data$PitchCall %in% c(
+  result$`Swing %` <- sum(player_data_zoned$PitchCall %in% c(
     "StrikeSwinging", "Foul", "InPlay"
   )) / n
   
   
   # Whiff
-  result$`Whiff %` <- sum(data$PitchCall == "StrikeSwinging") /
-    sum(data$PitchCall %in% c("StrikeSwinging", "Foul", "InPlay"))
+  result$`Whiff %` <- sum(player_data_zoned$PitchCall == "StrikeSwinging") /
+    sum(player_data_zoned$PitchCall %in% c("StrikeSwinging", "Foul", "InPlay"))
   
   # Meatball
-  result$`Meatball %` <- sum(data$zone == "Meatball") / n
+  result$`Meatball %` <- sum(player_data_zoned$zone == "Meatball") / n
   
   # Meatball Contact
   result$`Meatball Swing %`  <- sum(meatball$PitchCall %in% c(
     "StrikeSwinging", "Foul", "InPlay"
-  )) / length(meatball$zone)
+  )) / nrow(meatball)
   
   
   
