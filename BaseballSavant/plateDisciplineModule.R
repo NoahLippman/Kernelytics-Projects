@@ -20,7 +20,8 @@ classify <- function(data){
   # Remove untagged pitches and no-ballflight pitches
   data <- data %>%
     filter(TaggedPitchType != "") %>%
-    drop_na(PlateLocHeight, PlateLocSide)
+    drop_na(PlateLocHeight, PlateLocSide) %>%
+    drop_na(PitchCall)
   
   result <- data
   
