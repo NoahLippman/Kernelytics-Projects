@@ -7,7 +7,7 @@ plot_percentile_bars <- function(player_data, stat_cols) {
   
   df <- tibble(
     Stat = factor(stat_cols, levels = rev(stat_cols)),
-    Value = round(as.numeric(player_data[stat_cols]), 2),
+    Value = as.numeric(player_data[stat_cols]),
     Percentile = round(as.numeric(player_data[pct_cols]), 0)
   )
   
@@ -21,14 +21,39 @@ plot_percentile_bars <- function(player_data, stat_cols) {
         Percentile >= 20 ~ "#6886ba",
         TRUE            ~ "#325aa1"
       ),
-      ScaledPct = round(.9*Percentile,0)
-    )
+      ScaledPct = round(.9*Percentile,0),
+      ValueLabel = case_when(
+        Stat %in% c("xBA", "xSLG", "xWOBA", "xWOBA_2", "xBABIP", "babip") ~ sprintf("%.3f", Value),
+        Stat %in% c("LASweetSpot", "hardHitPct", "squaredUpPct", 
+                    "kPct", "bbPct", "whiffPct", "chasePct") ~ paste0(round(Value * 100), "%"),
+        TRUE                                ~ sprintf("%.2f", Value)
+      ),
+      DisplayStat = recode(Stat,
+                           avgExitVelo = "Avg Exit Velo",
+                           maxExitVelo = "Max Exit Velo",
+                           LASweetSpot = "LA Sweet Spot %",
+                           hardHitPct  = "Hard Hit %",
+                           squaredUpPct= "Squared Up %",
+                           kPct        = "K %",
+                           bbPct       = "BB %",
+                           whiffPct    = "Whiff %",
+                           chasePct    = "Chase %",
+                           xBA         = "xBA",
+                           xSLG        = "xSLG",
+                           xWOBA       = "xWOBA",
+                           xWOBA_2     = "xWOBA 2",
+                           xBABIP      = "xBABIP",
+                           babip       = "BABIP"
+      ) 
+    ) |> 
+    mutate(DisplayStat = factor(DisplayStat, levels = rev(DisplayStat)))
+    
   
-  ggplot(df, aes(x = ScaledPct, y = Stat)) +
+  ggplot(df, aes(x = ScaledPct, y = DisplayStat)) +
     geom_bar(stat = "identity", aes(fill = Color), width = .9) +
     geom_point(aes(fill = Color), shape = 21, color = "white", size = 8, stroke = 1.3) +
     geom_text(aes(label = paste0(Percentile)), color = "white", size = 3.5, fontface = "bold") +
-    geom_text(aes(label = round(Value, 3), x = 95),
+    geom_text(aes(label = ValueLabel, x = 95),
               hjust = 0, size = 4) +
     scale_fill_identity() +
     scale_x_continuous(limits = c(-4, 110), expand = c(0, 0)) +
