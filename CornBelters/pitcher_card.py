@@ -47,6 +47,7 @@ dtypes = {
     'HorzBreak': float,
     'InducedVertBreak': float,
     'SpinRate': float,
+    'Tilt' : float,
     'RelSide': float,
     'RelHeight': float,
     'Extension': float,
