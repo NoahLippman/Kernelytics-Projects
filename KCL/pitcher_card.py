@@ -534,18 +534,18 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     strike_zone_plot(df, ax_plot_3, pitcher_name, 'Right', 'Pitch Locations vs RHH')
     pitch_table(df, ax_table, pitcher_name, team, season, fontsize=fontsize)
 
-    ax_footer.text(0, 1, 'By: Max Quirk @mqstats', ha='left', va='top', fontsize=24)
+    ax_footer.text(0, 1, 'By: Max Quirk', ha='left', va='top', fontsize=24)
     ax_footer.text(0.5, 1, 'Pitch Matrix Colour Coding Compares to League Average', ha='center', va='top', fontsize=16)
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./KCL/Cards/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
+    filename = f"./KCL/Cards/6-19/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'KCL/Data/merchantscats.csv'
+data_path = 'KCL/Data/maddenjohnson.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 

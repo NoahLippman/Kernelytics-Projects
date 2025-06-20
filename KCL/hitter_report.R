@@ -45,7 +45,7 @@ color_by_rank2 <- function(rank_vector, n_colors) {
 }
 
 # Load data
-data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
+data_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
 }
@@ -62,7 +62,7 @@ message("Unique BatterTeam values: ", paste(unique(df$BatterTeam), collapse = ",
 
 # Filter data
 df <- df %>%
-  filter(BatterTeam == "Kcl bobcats 2025",
+  filter(BatterTeam == "Normal cornbelters",
          TaggedPitchType != "Undefined")
 
 # Debug: Check if data remains after filtering
@@ -151,8 +151,8 @@ percentile_data <- data_to_plot %>%
   mutate(across(.cols = where(is.numeric), .fns = percentile_rank))
 
 # Define which columns use which color scheme
-high_is_good <- c("PA", "BB%", "90th EV", "100+ EV", "Avg EV", "Max EV", "HH%", "Barrel%", "LD%", "10-30%")
-low_is_good <- c("SO%", "IZ Strike Take%", "SC%", "Whiff%", "Z Whiff%", "Chase%", "GB%", "FB%", "Pop%")
+high_is_good <- c("PA", "BB%", "90th EV", "100+ EV", "Avg EV", "Max EV", "HH%", "Barrel%", "LD%", "10-30%", "SC%")
+low_is_good <- c("SO%", "IZ Strike Take%", "Whiff%", "Z Whiff%", "Chase%", "GB%", "FB%", "Pop%")
 
 # Create a matrix of background colors based on percentile ranks
 bg_colors <- matrix(na_color, nrow = nrow(data_to_plot), ncol = ncol(data_to_plot), 
@@ -180,8 +180,10 @@ custom_theme <- ttheme_default(
   )
 )
 
+#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/reports/hitter_report.pdf"
+#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/bobcats.pdf"
 # Define PDF output path
-pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/bobcats.pdf"
+pdf_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/reports/hitter_report.pdf"
 
 # Open PDF device with landscape dimensions
 pdf(file = pdf_path, width = 11, height = 8.5)

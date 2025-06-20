@@ -41,9 +41,10 @@ color_by_rank2 <- function(rank_vector, n_colors) {
   color_index <- findInterval(rank_vector, breaks, rightmost.closed = TRUE)
   lower_higher[color_index]
 }
-
+#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
+#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
 # Load data (use read_csv for consistency with hitter code)
-data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
+data_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
 }
@@ -65,7 +66,7 @@ message("Unique PitcherTeam values: ", paste(unique(df$PitcherTeam), collapse = 
 # Filter and mutate data
 df <- df %>%
   filter(
-    PitcherTeam %in% c("Kcl bobcats 2025", "Normal Cornbelters"),
+    PitcherTeam %in% c("Kcl bobcats 2025", "Normal cornbelters"),
     !is.na(RelSpeed),
     TaggedPitchType != "Undefined",
     PitchCall != "Undefined"
@@ -123,7 +124,7 @@ df <- df %>%
       1, 0),
     FPindicator = ifelse(Balls == 0 & Strikes == 0, 1, 0),
     PAindicator = ifelse(
-      PitchCall %in% c("InPlay", "HitByPitch", "CatchersInterference") | 
+      PitchCall %in% c("InPlay", "HitByPitch") | 
         KorBB %in% c("Walk", "Strikeout"), 
       1, 0),
     LeadOffIndicator = ifelse(
@@ -131,7 +132,7 @@ df <- df %>%
         PitchCall == "HitByPitch", 
       1, 0),
     HBPIndicator = ifelse(PitchCall == "HitByPitch", 1, 0),
-    WalkIndicator = ifelse(KorBB == "Walk", 1, 0),
+    WalkIndicator = ifelse(KorBB %in% c("Walk"), 1, 0),
     BIPind = ifelse(PitchCall == "InPlay", 1, 0),
     SolidContact = ifelse(
       (PitchCall == "InPlay" & 
@@ -187,7 +188,7 @@ summary_data <- df %>%
   summarize(
     IP = sum(OutIndicator, na.rm = TRUE) / 3,
     Pitches = n(),
-    `Avg FB Velo` = round(
+    ` FB Velo` = round(
       ifelse(
         sum(TaggedPitchType %in% c("Fastball", "Sinker") & !is.na(RelSpeed)) > 0,
         mean(RelSpeed[TaggedPitchType %in% c("Fastball", "Sinker")], na.rm = TRUE),
@@ -207,11 +208,12 @@ summary_data <- df %>%
     `Whiff %` = round(sum(WhiffIndicator) / sum(SwingIndicator), 3) * 100,
     `IZ Whiff %` = round(sum(Zwhiffind, na.rm = TRUE) / sum(Zswing, na.rm = TRUE), 3) * 100,
     `Chase %` = round(sum(Chaseindicator, na.rm = TRUE) / sum(OutofZone, na.rm = TRUE), 3) * 100,
-    `K %` = round(sum(KorBB == "Strikeout") / sum(PAindicator), 3) * 100,
-    `BB %` = round(sum(WalkIndicator) / sum(PAindicator), 3) * 100,
+    `K %` = round(sum(KorBB %in% c("Strikeout")) / sum(PAindicator, na.rm = TRUE), 3) * 100,
+    `BB %` = round(sum(WalkIndicator) / sum(PAindicator, na.rm = TRUE), 3) * 100,
     `HH %` = round(sum(HHindicator, na.rm = TRUE) / sum(biphh, na.rm = TRUE), 3) * 100,
     `GB %` = round(sum(GBindicator, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), 3) * 100
   )
+
 
 # Debug: Check if summary_data is empty
 message("Number of rows in summary_data: ", nrow(summary_data))
@@ -221,9 +223,9 @@ if (nrow(summary_data) == 0) {
 
 # Prepare data for plotting
 data_to_plot <- summary_data %>% 
-  arrange(desc(`Avg FB Velo`)) %>%
-  select(Pitcher, IP, Pitches, `Avg FB Velo`, `Max FB Velo`, `Strike %`, `FB Strike %`, `OS Strike %`, 
-         `E+A %`, `1PK %`, `Whiff %`, `IZ Whiff %`, `Chase %`, `K %`, `BB %`, AVG, OPS, `HH %`, `GB %`)
+  arrange(desc(` FB Velo`)) %>%
+  select(Pitcher, IP, Pitches, ` FB Velo`, `Max FB Velo`, `Strike %`, `FB Strike %`, `OS Strike %`, 
+         `E+A %`, `1PK %`, `Whiff %`, `IZ Whiff %`, `Chase %`, `K %`, `BB %`, `HH %`, `GB %`)
 
 # Calculate percentile ranks for numeric columns
 percentile_rank <- function(x) {
@@ -238,7 +240,7 @@ percentile_data <- data_to_plot %>%
   mutate(across(.cols = where(is.numeric), .fns = percentile_rank))
 
 # Define which columns use which color scheme
-high_is_good <- c("IP", "Pitches", "Avg FB Velo", "Max FB Velo", "Strike %", "FB Strike %", 
+high_is_good <- c("IP", "Pitches", " FB Velo", "Max FB Velo", "Strike %", "FB Strike %", 
                   "OS Strike %", "E+A %", "1PK %", "Whiff %", "IZ Whiff %", "Chase %", "K %", "GB %")
 low_is_good <- c("BB %", "HH %")
 
@@ -259,17 +261,19 @@ bg_colors[is.na(bg_colors)] <- na_color  # Replace NA with na_color
 # Define custom table theme
 custom_theme <- ttheme_default(
   core = list(
-    fg_params = list(fontsize = 6, col = "black"),  # Adjusted for 19 columns
+    fg_params = list(fontsize = 5, col = "black"),  # Text color for table content
     bg_params = list(fill = bg_colors)  # Apply percentile-based background colors
   ),
   colhead = list(
-    fg_params = list(fontsize = 7, col = "white", fontface = "bold"),
-    bg_params = list(fill = "darkred")  # Header background color
+    fg_params = list(fontsize = 6, col = "white", fontface = "bold"),
+    bg_params = list(fill = "#CC0000")  # Header background color
   )
 )
 
+#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/bobcats.pdf"
+#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/reports/hitter_report.pdf"
 # Save table as PDF
-pdf(file = "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/bobcats.pdf", width = 11, height = 8.5)
+pdf(file = "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/reports/pitcher_report.pdf", width = 11, height = 8.5)
 grid.newpage()
 grid.text("Pitching Leaders", x = 0.5, y = 0.95, gp = gpar(fontsize = 20, fontface = "bold", col = "black"))
 grid.table(
