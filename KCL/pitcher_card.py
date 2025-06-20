@@ -545,7 +545,7 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     plt.close()
 
 # Main script with updated for loop
-data_path = 'KCL/Data/pk.csv'
+data_path = 'KCL/Data/merchantscats.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 
