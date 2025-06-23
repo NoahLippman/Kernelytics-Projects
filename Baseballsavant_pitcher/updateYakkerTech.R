@@ -2,17 +2,19 @@ library(tidyverse)
 library(mgcv)
 library(purrr)
 
+#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/kclData"
+#"C:/Users/maxim/Desktop/Kernelytics-Projects/kclData"
 #Put your file path
 kcl_all_files <- list.files(
-  path = "C:/Users/maxim/Desktop/Kernelytics-Projects/kclData",
+  path = "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/kclData",
   pattern = "\\.csv$",
   full.names = TRUE
 )
 
-
-
+#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBeltersData",
+#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/CornBeltersData"
 belters_all_files <- list.files(
-  path = "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBeltersData",
+  path = "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/CornBeltersData",
   pattern = "\\.csv$",
   full.names = TRUE
 )

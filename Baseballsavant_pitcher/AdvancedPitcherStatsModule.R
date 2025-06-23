@@ -152,7 +152,7 @@ advancedPitcherStatsServer <- function(id, data_source, pitcher_name) {
               paste(advanced_by_pitcher$Pitcher, collapse = ", "))
       
       # Compute percentiles and round to 3 decimals
-      invert_cols <- c("bbPct", "hardHitPct", "BarrelPct", "xBA")
+      invert_cols <- c("bbPct", "hardHitPct", "BarrelPct", "xBA",'avgExitVelo')
       non_invert_cols <- setdiff(numeric_cols, invert_cols)
       
       advanced_by_pitcher <- advanced_by_pitcher %>%

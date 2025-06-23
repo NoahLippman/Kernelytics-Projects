@@ -26,7 +26,8 @@ dict_colour = {
     'SLIDER': 'green',
     'SPLITTER': 'black',
     'CUTTER': 'yellow',
-    'UNKNOWN': 'gray'
+    'UNKNOWN': 'gray',
+    'KNUCKLEBALL': 'brown'
 }
 pitch_mapping = {
     'Fastball': '4-SEAM FASTBALL',
@@ -37,7 +38,8 @@ pitch_mapping = {
     'Slider': 'SLIDER',
     'Cutter': 'CUTTER',
     'Splitter': 'SPLITTER',
-    'Undefined': 'UNKNOWN'
+    'Undefined': 'UNKNOWN',
+    'Knuckleball': 'KNUCKLEBALL'
 }
 dtypes = {
     'Pitcher': str,
@@ -66,14 +68,8 @@ dtypes = {
 }
 
 # Function to compute pitching stats from local data
-def local_pitching_stats(pitcher_name: str, team: str, season: int, data_path: str):
-    try:
-        df = pd.read_csv(data_path, dtype=dtypes)
-    except ValueError as e:
-        print(f"Error reading CSV with specified dtypes: {e}")
-        print("Falling back to low_memory=False")
-        df = pd.read_csv(data_path, low_memory=False)
-
+def local_pitching_stats(pitcher_name: str, team: str, season: int, df: pd.DataFrame):
+    df =df.copy()  # Avoid SettingWithCopyWarning
     df['Year'] = pd.to_datetime(df['Date'], errors='coerce').dt.year
     pitcher_data = df[(df['Pitcher'] == pitcher_name) & (df['PitcherTeam'] == team) & (df['Year'] == season)]
 
@@ -86,21 +82,22 @@ def local_pitching_stats(pitcher_name: str, team: str, season: int, data_path: s
     runs = pitcher_data['RunsScored'].sum()      # Runs Scored
     hits = pitcher_data[pitcher_data['PlayResult'].isin(['Single', 'Double', 'Triple', 'HomeRun'])].shape[0]  # Hits
     walks = pitcher_data[pitcher_data['KorBB'] == 'Walk'].shape[0]  # Walks
-    strikeouts = pitcher_data[pitcher_data['PlayResult'] == 'StrikeoutLooking'].shape[0] + pitcher_data[pitcher_data['PlayResult'] == 'StrikeoutSwinging'].shape[0]  # Strikeouts
+    strikeouts = pitcher_data[pitcher_data['PlayResult'] == 'StrikeoutLooking'].shape[0] + \
+                 pitcher_data[pitcher_data['PlayResult'] == 'StrikeoutSwinging'].shape[0]  # Strikeouts
     pitches = pitcher_data['TaggedPitchType'].count()
     stats = {
-        'IP': ip,
-        'P': pitches,
-        'R': runs,
-        'H': hits,
-        'BB': walks,
-        'K': strikeouts
+        'IP': float(ip),
+        'P': int(pitches),
+        'R': int(runs),
+        'H': int(hits),
+        'BB': int(walks),
+        'K': int(strikeouts)
     }
     return pd.DataFrame([stats])
 
 # Function to create the pitching stats table
-def local_pitcher_stats_table(pitcher_name: str, team: str, season: int, ax: plt.Axes, stats: list, fontsize: int, data_path: str):
-    df_stats = local_pitching_stats(pitcher_name, team, season, data_path)
+def local_pitcher_stats_table(pitcher_name: str, team: str, season: int, ax: plt.Axes, stats: list, fontsize: int, df: pd.DataFrame):
+    df_stats = local_pitching_stats(pitcher_name, team, season, df)
 
     if df_stats.empty:
         print("No stats to display")
@@ -108,15 +105,13 @@ def local_pitcher_stats_table(pitcher_name: str, team: str, season: int, ax: plt
 
     df_stats = df_stats[stats].reset_index(drop=True)
 
-    df_stats.loc[0] = [
-        format(df_stats[x][0], stats_dict[x]['format'])
-        if df_stats[x][0] != '---' and not pd.isna(df_stats[x][0])
-        else '---'
-        for x in df_stats
+    # Format values for display only (not modifying df_stats)
+    display_values = [
+        [format(df_stats[x][0], stats_dict[x]['format']) if not pd.isna(df_stats[x][0]) else '---' for x in df_stats]
     ]
 
     table_fg = ax.table(
-        cellText=df_stats.values,
+        cellText=display_values,
         colLabels=stats,
         cellLoc='center',
         bbox=[0.00, 0.0, 1, 1]
@@ -380,9 +375,14 @@ cmap_sum = sns.color_palette("coolwarm", as_cmap=True)
 colour_stats = ['release_speed', 'whiff_rate', 'in_zone_rate', 'chase_rate']
 
 def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name: str, team: str, season: int):
-    # Calculate league-wide averages for the relevant stats
-    full_df['Year'] = pd.to_datetime(full_df['Date'], errors='coerce').dt.year
-    league_df = full_df[full_df['Year'] == season].copy()
+    # Work on a copy of full_df to avoid modifying the original
+    league_df = full_df.copy()
+    
+    # Explicitly assign 'Year' using .loc
+    league_df.loc[:, 'Year'] = pd.to_datetime(league_df['Date'], errors='coerce').dt.year
+    
+    # Filter for the specified season
+    league_df = league_df[league_df['Year'] == season]
     
     # Compute league-wide stats
     league_totals = league_df.groupby('TaggedPitchType').agg(
@@ -416,11 +416,9 @@ def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name
                 if np.isnan(value):
                     colour_list_df_inner.append('#ffffff')
                 elif tb == 'release_speed':
-                    # Normalize using league average
                     normalize = mcolors.Normalize(vmin=league_averages[tb] * 0.95, vmax=league_averages[tb] * 1.05)
                     colour_list_df_inner.append(mcolors.to_hex(cmap_sum(normalize(value))))
                 else:
-                    # Normalize using league average for rates
                     normalize = mcolors.Normalize(vmin=league_averages[tb] * 0.7, vmax=league_averages[tb] * 1.3)
                     colour_list_df_inner.append(mcolors.to_hex(cmap_sum(normalize(value))))
             else:
@@ -496,7 +494,7 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_right.axis('off')
 
     fontsize = 16
-    local_pitcher_stats_table(pitcher_name, team, season, ax_season_table, stats, fontsize=20, data_path=data_path)
+    local_pitcher_stats_table(pitcher_name, team, season, ax_season_table, stats, fontsize=20, df=df)
     strike_zone_plot(df, ax_plot_1, pitcher_name, 'Left', 'Pitch Locations vs LHH')
     break_plot(df, ax_plot_2, pitcher_name)
     strike_zone_plot(df, ax_plot_3, pitcher_name, 'Right', 'Pitch Locations vs RHH')
@@ -507,13 +505,13 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./CornBelters/Cards/6-21/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
+    filename = f"./Cornbelters/Cards/6-11/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'CornBelters/Data/cornbelters6-21.csv'
+data_path = 'Cornbelters/Data/BeltersRex6-11.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 # Define dtypes for reading CSV
@@ -545,7 +543,7 @@ for _, row in pitcher_teams.iterrows():
     # Call the pitching_dashboard function
     try:
         #pitcher_df = pitcher_df[pitcher_df['PitcherTeam'] == 'Normal cornbelters']
-        pitching_dashboard(pitcher_df, stats, pitcher_name, team, season, data_path)
+        pitching_dashboard(pitcher_df, stats, pitcher_name, team, season, df)
         print(f"Dashboard generated for {pitcher_name} ({team})")
     except Exception as e:
         print(f"Error generating dashboard for {pitcher_name}: {e}")
