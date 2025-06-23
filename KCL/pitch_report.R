@@ -1,50 +1,51 @@
 # Load required packages
 library(dplyr)
 library(gridExtra)
-library(scales)
 library(grid)
-library(readr)  # Added for read_csv
+library(scales)
+library(readr)
+library(tidyverse)
 
 # Define color palettes
 rank_colors <- colorRampPalette(c("#E1463E", "white", "#00840D"))(18)  # Red (low) to Green (high)
 rank_colors2 <- colorRampPalette(c("#00840D", "white", "#E1463E"))(18)  # Green (low) to Red (high)
 na_color <- "#D3D3D3"
-# Color ranking functions (adapted from hitter code)
+
+# Color ranking functions (modified to return na_color instead of stopping)
 color_by_rank <- function(rank_vector, n_colors) {
   rank_vector <- as.numeric(rank_vector)
   rank_vector[!is.finite(rank_vector)] <- NA
   if (all(is.na(rank_vector))) {
-    return(rep(na_color, length(rank_vector)))  # Return na_color for all-NA columns
+    return(rep(na_color, length(rank_vector)))  # Return gray for all-NA
   }
   min_rank <- min(rank_vector, na.rm = TRUE)
   max_rank <- max(rank_vector, na.rm = TRUE)
   if (!is.finite(min_rank) | !is.finite(max_rank)) {
-    return(rep(na_color, length(rank_vector)))  # Return na_color for non-finite ranks
+    return(rep(na_color, length(rank_vector)))  # Return gray for non-finite
   }
   breaks <- seq(min_rank, max_rank, length.out = n_colors + 1)
   color_index <- findInterval(rank_vector, breaks, rightmost.closed = TRUE)
-  higher_lower[color_index]
+  rank_colors[color_index]
 }
 
 color_by_rank2 <- function(rank_vector, n_colors) {
   rank_vector <- as.numeric(rank_vector)
   rank_vector[!is.finite(rank_vector)] <- NA
   if (all(is.na(rank_vector))) {
-    return(rep(na_color, length(rank_vector)))  # Return na_color for all-NA columns
+    return(rep(na_color, length(rank_vector)))  # Return gray for all-NA
   }
   min_rank <- min(rank_vector, na.rm = TRUE)
   max_rank <- max(rank_vector, na.rm = TRUE)
   if (!is.finite(min_rank) | !is.finite(max_rank)) {
-    return(rep(na_color, length(rank_vector)))  # Return na_color for non-finite ranks
+    return(rep(na_color, length(rank_vector)))  # Return gray for non-finite
   }
   breaks <- seq(min_rank, max_rank, length.out = n_colors + 1)
   color_index <- findInterval(rank_vector, breaks, rightmost.closed = TRUE)
-  lower_higher[color_index]
+  rank_colors2[color_index]
 }
-#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
-#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
-# Load data (use read_csv for consistency with hitter code)
-data_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
+
+# Load data
+data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/week1.csv"
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
 }
@@ -66,7 +67,7 @@ message("Unique PitcherTeam values: ", paste(unique(df$PitcherTeam), collapse = 
 # Filter and mutate data
 df <- df %>%
   filter(
-    PitcherTeam %in% c("Kcl bobcats 2025", "Normal cornbelters"),
+    PitcherTeam %in% c("Kcl merchants 2025", "Normal cornbelters"),
     !is.na(RelSpeed),
     !(TaggedPitchType %in% "Undefined"),
     !(PitchCall %in% "Undefined")
@@ -141,11 +142,11 @@ df <- df %>%
     HHindicator = ifelse(PitchCall %in% "InPlay" & ExitSpeed > 95, 1, 0),
     biphh = ifelse(PitchCall %in% "InPlay" & ExitSpeed > 15, 1, 0),
     FBstrikeind = ifelse(
-      (PitchCall %in% c("StrikeSwinging", "StrikeCalled", "FoulBall", "FoulBallNotFieldable", "InPlay")) & 
+      (PitchCall %in% c("StrikeSwinging", "StrikeCalled", "Foul", "InPlay")) & 
         (FBindicator == 1), 
       1, 0),
     OSstrikeind = ifelse(
-      (PitchCall %in% c("StrikeSwinging", "StrikeCalled", "FoulBall", "FoulBallNotFieldable", "InPlay")) & 
+      (PitchCall %in% c("StrikeSwinging", "StrikeCalled", "Foul", "FoulBallNotFieldable", "InPlay")) & 
         (OSindicator == 1), 
       1, 0),
     EdgeIndicator = ifelse(
@@ -154,7 +155,7 @@ df <- df %>%
       1, 0),
     QualityPitchIndicator = ifelse(StrikeZoneIndicator == 1 | EdgeIndicator == 1, 1, 0),
     FPSindicator = ifelse(
-      PitchCall %in% c("StrikeCalled", "StrikeSwinging", "FoulBall", "InPlay") &
+      PitchCall %in% c("StrikeCalled", "StrikeSwinging", "Foul", "InPlay") &
         (FPindicator == 1), 
       1, 0),
     OutIndicator = ifelse(
@@ -176,6 +177,7 @@ df <- df %>%
                                ifelse(PlayResult %in% "Triple", 3, 
                                       ifelse(PlayResult %in% "HomeRun", 4, 0))))
   )
+
 # Debug: Check if data remains after filtering
 if (nrow(df) == 0) {
   stop("No data remains after filtering for PitcherTeam and non-Undefined pitches")
@@ -187,7 +189,7 @@ summary_data <- df %>%
   summarize(
     IP = sum(OutIndicator, na.rm = TRUE) / 3,
     Pitches = n(),
-    ` FB Velo` = round(
+    `FB Velo` = round(
       ifelse(
         sum(TaggedPitchType %in% c("Fastball", "Sinker") & !is.na(RelSpeed)) > 0,
         mean(RelSpeed[TaggedPitchType %in% c("Fastball", "Sinker")], na.rm = TRUE),
@@ -213,7 +215,6 @@ summary_data <- df %>%
     `GB %` = round(sum(GBindicator, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), 3) * 100
   )
 
-
 # Debug: Check if summary_data is empty
 message("Number of rows in summary_data: ", nrow(summary_data))
 if (nrow(summary_data) == 0) {
@@ -222,8 +223,8 @@ if (nrow(summary_data) == 0) {
 
 # Prepare data for plotting
 data_to_plot <- summary_data %>% 
-  arrange(desc(` FB Velo`)) %>%
-  select(Pitcher, IP, Pitches, ` FB Velo`, `Max FB Velo`, `Strike %`, `FB Strike %`, `OS Strike %`, 
+  arrange(desc(`FB Velo`)) %>%
+  select(Pitcher, IP, Pitches, `FB Velo`, `Max FB Velo`, `Strike %`, `FB Strike %`, `OS Strike %`, 
          `E+A %`, `1PK %`, `Whiff %`, `IZ Whiff %`, `Chase %`, `K %`, `BB %`, `HH %`, `GB %`)
 
 # Calculate percentile ranks for numeric columns
@@ -239,20 +240,20 @@ percentile_data <- data_to_plot %>%
   mutate(across(.cols = where(is.numeric), .fns = percentile_rank))
 
 # Define which columns use which color scheme
-high_is_good <- c("IP", "Pitches", " FB Velo", "Max FB Velo", "Strike %", "FB Strike %", 
+high_is_good <- c("IP", "Pitches", "FB Velo", "Max FB Velo", "Strike %", "FB Strike %", 
                   "OS Strike %", "E+A %", "1PK %", "Whiff %", "IZ Whiff %", "Chase %", "K %", "GB %")
 low_is_good <- c("BB %", "HH %")
 
 # Create a matrix of background colors based on percentile ranks
 bg_colors <- matrix(na_color, nrow = nrow(data_to_plot), ncol = ncol(data_to_plot), 
-                    dimnames = list(NULL, names(data_to_plot)))  # Assign column names
+                    dimnames = list(NULL, names(data_to_plot)))
 for (col in names(data_to_plot)) {
   if (col == "Pitcher") next  # Skip non-numeric column
   ranks <- percentile_data[[col]]
   if (col %in% high_is_good) {
-    bg_colors[, col] <- color_by_rank(ranks, length(higher_lower))
+    bg_colors[, col] <- color_by_rank(ranks, length(rank_colors))  # Fixed: Use rank_colors
   } else if (col %in% low_is_good) {
-    bg_colors[, col] <- color_by_rank2(ranks, length(lower_higher))
+    bg_colors[, col] <- color_by_rank2(ranks, length(rank_colors2))  # Fixed: Use rank_colors2
   }
 }
 bg_colors[is.na(bg_colors)] <- na_color  # Replace NA with na_color
@@ -269,10 +270,11 @@ custom_theme <- ttheme_default(
   )
 )
 
-#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/bobcats.pdf"
-#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/reports/hitter_report.pdf"
-# Save table as PDF
-pdf(file = "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/reports/pitcher_report.pdf", width = 11, height = 8.5)
+# Save table and glossary as PDF
+pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/merchants_pitchers.pdf"
+pdf(file = pdf_path, width = 11, height = 8.5)
+
+# Create a new page for the table
 grid.newpage()
 grid.text("Pitching Leaders", x = 0.5, y = 0.95, gp = gpar(fontsize = 20, fontface = "bold", col = "black"))
 grid.table(
@@ -280,4 +282,35 @@ grid.table(
   theme = custom_theme,
   rows = NULL  # Suppress row indices
 )
+
+# Create a new page for the glossary
+grid.newpage()
+grid.text("Glossary of Terms", x = 0.5, y = 0.95, gp = gpar(fontsize = 14, fontface = "bold", col = "black"))
+grid.text(
+  paste(
+    "Glossary of Terms:\n",
+    "IP: Innings Pitched - The number of innings pitched, calculated as outs recorded divided by 3.\n",
+    "Pitches: Total Pitches - The total number of pitches thrown by the pitcher.\n",
+    "FB Velo: Fastball Velocity - The average velocity (in mph) of fastballs and sinkers thrown.\n",
+    "Max FB Velo: Maximum Fastball Velocity - The highest velocity (in mph) of fastballs or sinkers thrown.\n",
+    "Strike %: Strike Percentage - The percentage of pitches resulting in a strike (called, swinging, foul, or in-play).\n",
+    "FB Strike %: Fastball Strike Percentage - The percentage of fastballs/sinkers resulting in a strike.\n",
+    "OS Strike %: Off-Speed Strike Percentage - The percentage of off-speed pitches (slider, cutter, curveball, changeup) resulting in a strike.\n",
+    "E+A %: Early and Ahead Percentage - The percentage of plate appearances with outcomes in early (0-0, 1-0, 0-1, 1-1) or ahead (0-1, 1-1) counts.\n",
+    "1PK %: First-Pitch Strike Percentage - The percentage of first pitches (0-0 count) resulting in a strike.\n",
+    "Whiff %: Whiff Percentage - The percentage of swings resulting in a miss (swinging strike).\n",
+    "IZ Whiff %: In-Zone Whiff Percentage - The percentage of swings on pitches in the strike zone resulting in a miss.\n",
+    "Chase %: Chase Percentage - The percentage of swings on pitches outside the strike zone.\n",
+    "K %: Strikeout Percentage - The percentage of plate appearances resulting in a strikeout.\n",
+    "BB %: Walk Percentage - The percentage of plate appearances resulting in a walk.\n",
+    "HH %: Hard Hit Percentage - The percentage of batted balls with an exit velocity above 95 mph.\n",
+    "GB %: Ground Ball Percentage - The percentage of batted balls classified as ground balls."
+  ),
+  x = 0.5,              # Center horizontally
+  y = 0.9,              # Start near the top of the page
+  just = c("center", "top"),  # Center-align and anchor at top
+  gp = gpar(fontsize = 12, fontface = "plain", col = "black", lineheight = 0.7)  # Larger font, compact spacing
+)
+
+# Close the PDF device
 dev.off()

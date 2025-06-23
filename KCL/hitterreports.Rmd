@@ -1,11 +1,30 @@
-# Load required packages
+---
+title: "Advanced Offensive Statistics"
+author: "Your Name"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    includes:
+      in_header: header.tex
+    keep_tex: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(dplyr)
 library(gridExtra)
 library(grid)
 library(scales)
 library(readr)
 library(tidyverse)
+library(kableExtra)
 
+
+{r data-processing}
 # Define color palettes
 rank_colors <- colorRampPalette(c("#E1463E", "white", "#00840D"))(18)  # Red (low) to Green (high)
 rank_colors2 <- colorRampPalette(c("#00840D", "white", "#E1463E"))(18)  # Green (low) to Red (high)
@@ -44,8 +63,6 @@ color_by_rank2 <- function(rank_vector, n_colors) {
   rank_colors2[color_index]
 }
 
-#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
-#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
 # Load data
 data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/week1.csv"
 if (!file.exists(data_path)) {
@@ -53,21 +70,17 @@ if (!file.exists(data_path)) {
 }
 df <- read_csv(data_path)
 
-# Assign team names (corrected to match filter)
+# Assign team names
 df$BatterTeam[df$Batter %in% c("Will Vogel", "Kam Ross", "Bennett Summers", 
                                "Brayden Windy", "Sammy Descarpentrie", 
                                "Michael Lucas")] <- "Kcl groundsloths 2025"
 
-# Debug: Check column names and unique BatterTeam values
-message("Column names in dataset: ", paste(names(df), collapse = ", "))
-message("Unique BatterTeam values: ", paste(unique(df$BatterTeam), collapse = ", "))
-
 # Filter data
 df <- df %>%
-  filter(BatterTeam == "Kcl bluecaps 2025",
+  filter(BatterTeam == "Kcl bobcats 2025",
          TaggedPitchType != "Undefined")
 
-# Debug: Check if data remains after filtering
+# Check if data remains after filtering
 if (nrow(df) == 0) {
   stop("No data remains after filtering for BatterTeam == 'Kcl bobcats 2025' and TaggedPitchType != 'Undefined'")
 }
@@ -127,13 +140,7 @@ summary_data <- df %>%
     `Pop%` = round(ifelse(sum(BIPind) > 0, sum(Popind, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), NA_real_), 3) * 100
   )
 
-# Debug: Check if summary_data is empty
-message("Number of rows in summary_data: ", nrow(summary_data))
-if (nrow(summary_data) == 0) {
-  stop("summary_data is empty after summarization")
-}
-
-# Prepare data for plotting (remove redundant ranking)
+# Prepare data for plotting
 data_to_plot <- summary_data %>% 
   arrange(desc(`Avg EV`)) %>%
   select(Batter, PA, `BB%`, `SO%`, `IZ Strike Take%`, `90th EV`, `100+ EV`, `Avg EV`, `Max EV`, 
@@ -157,9 +164,9 @@ low_is_good <- c("SO%", "IZ Strike Take%", "Whiff%", "Z Whiff%", "Chase%", "GB%"
 
 # Create a matrix of background colors based on percentile ranks
 bg_colors <- matrix(na_color, nrow = nrow(data_to_plot), ncol = ncol(data_to_plot), 
-                    dimnames = list(NULL, names(data_to_plot)))  # Assign column names
+                    dimnames = list(NULL, names(data_to_plot)))
 for (col in names(data_to_plot)) {
-  if (col == "Batter") next  # Skip non-numeric column
+  if (col == "Batter") next
   ranks <- percentile_data[[col]]
   if (col %in% high_is_good) {
     bg_colors[, col] <- color_by_rank(ranks, length(rank_colors))
@@ -167,76 +174,10 @@ for (col in names(data_to_plot)) {
     bg_colors[, col] <- color_by_rank2(ranks, length(rank_colors2))
   }
 }
-bg_colors[is.na(bg_colors)] <- na_color  # Replace NA with na_color
+bg_colors[is.na(bg_colors)] <- na_color
+kableExtra::kbl(data_to_plot, booktabs = TRUE, longtable = TRUE, escape = FALSE) %>%
+  kableExtra::kable_styling(latex_options = c("striped", "scale_down"), font_size = 8) %>%
+  kableExtra::column_spec(1:ncol(data_to_plot), background = bg_colors) %>%
+  kableExtra::row_spec(0, background = "#CC0000", color = "white", bold = TRUE)
+\clearpage
 
-# Define custom table theme
-custom_theme <- ttheme_default(
-  core = list(
-    fg_params = list(fontsize = 5, col = "black"),  # Text color for table content
-    bg_params = list(fill = bg_colors)  # Apply percentile-based background colors
-  ),
-  colhead = list(
-    fg_params = list(fontsize = 6, col = "white", fontface = "bold"),
-    bg_params = list(fill = "#CC0000")  # Header background color
-  )
-)
-
-#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/reports/hitter_report.pdf"
-#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/bobcats.pdf"
-# Define PDF output path
-# Define PDF output path
-pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/merchants_hitter.pdf"
-
-# Open PDF device with landscape dimensions
-pdf(file = pdf_path, width = 11, height = 8.5)
-
-# Create a new page
-grid.newpage()
-
-# Add title with bold formatting and color
-grid.text("Advanced Offensive Statistics", x = 0.5, y = 0.95, 
-          gp = gpar(fontsize = 20, fontface = "bold", col = "#000000"))
-
-# Create and render the table without row indices
-grid.table(
-  data_to_plot,
-  theme = custom_theme,
-  rows = NULL  # Suppress row indices
-)
-
-# Add glossary text below the table
-grid.text(
-  paste(
-    "Glossary of Terms:\n",
-    "PA: Plate Appearance - A batter's turn at bat, resulting in outcomes like hits, walks, strikeouts, or other results.\n",
-    "BB%: Walk Percentage - The percentage of plate appearances resulting in a walk.\n",
-    "SO%: Strikeout Percentage - The percentage of plate appearances resulting in a strikeout.\n",
-    "IZ Strike Take%: In-Zone Strike Take Percentage - The percentage of pitches in the strike zone taken for a called strike.\n",
-    "90th EV: 90th Percentile Exit Velocity - The exit velocity at the 90th percentile of a batter's batted balls, excluding bunts.\n",
-    "100+ EV: 100+ MPH Exit Velocity Count - The number of batted balls with an exit velocity of 100 mph or higher, excluding bunts.\n",
-    "Avg EV: Average Exit Velocity - The mean exit velocity of batted balls, excluding bunts.\n",
-    "Max EV: Maximum Exit Velocity - The highest exit velocity recorded for a batted ball.\n",
-    "SC%: Solid Contact Percentage - The percentage of batted balls > 92 with a launch angle above 8\n",
-    "10-30%: 10-30 Degree Launch Angle Percentage - The percentage of batted balls with a launch angle between 10 and 30 degrees.\n",
-    "HH%: Hard Hit Percentage - The percentage of batted balls with an exit velocity of 95 mph or higher.\n",
-    "Barrel%: Barrel Percentage - The percentage of batted balls with an exit velocity of 95 mph or higher and a launch angle between 10 and 32 degrees.\n",
-    "Whiff%: Whiff Percentage - The percentage of swings resulting in a miss (swinging strike).\n",
-    "Z Whiff%: In-Zone Whiff Percentage - The percentage of swings on pitches in the strike zone resulting in a miss.\n",
-    "Chase%: Chase Percentage - The percentage of swings on pitches outside the strike zone.\n",
-    "GB%: Ground Ball Percentage - The percentage of batted balls classified as ground balls.\n",
-    "LD%: Line Drive Percentage - The percentage of batted balls classified as line drives.\n",
-    "FB%: Fly Ball Percentage - The percentage of batted balls classified as fly balls.\n",
-    "Pop%: Popup Percentage - The percentage of batted balls classified as popups."
-  ),
-  x = 0.5,              # Center horizontally
-  y = 0.25,             # Place below the table (adjust as needed)
-  just = c("center", "top"),  # Center-align and anchor at top
-  gp = gpar(fontsize = 8, fontface = "plain", col = "black", lineheight = 0.8)
-)
-
-
-
-
-
-# Close the PDF device
-dev.off()
