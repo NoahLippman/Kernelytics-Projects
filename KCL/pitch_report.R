@@ -68,17 +68,17 @@ df <- df %>%
   filter(
     PitcherTeam %in% c("Kcl bobcats 2025", "Normal cornbelters"),
     !is.na(RelSpeed),
-    TaggedPitchType != "Undefined",
-    PitchCall != "Undefined"
+    !(TaggedPitchType %in% "Undefined"),
+    !(PitchCall %in% "Undefined")
   ) %>%
   mutate(
     FBindicator = ifelse(TaggedPitchType %in% c("Fastball", "Sinker"), 1, 0),
     OSindicator = ifelse(TaggedPitchType %in% c("Slider", "Cutter", "Curveball", "ChangeUp"), 1, 0),
     EarlyIndicator = ifelse(
-      (Balls == 0 & Strikes == 0 & PitchCall == "InPlay") |
-        (Balls == 1 & Strikes == 0 & PitchCall == "InPlay") |
-        (Balls == 0 & Strikes == 1 & PitchCall == "InPlay") |
-        (Balls == 1 & Strikes == 1 & PitchCall == "InPlay"), 
+      (Balls == 0 & Strikes == 0 & PitchCall %in% "InPlay") |
+        (Balls == 1 & Strikes == 0 & PitchCall %in% "InPlay") |
+        (Balls == 0 & Strikes == 1 & PitchCall %in% "InPlay") |
+        (Balls == 1 & Strikes == 1 & PitchCall %in% "InPlay"), 
       1, 0),
     AheadIndicator = ifelse(
       ((Balls == 0 & Strikes == 1) & PitchCall %in% c("StrikeCalled", "StrikeSwinging", "FoulBallNotFieldable", "FoulBall")) |
@@ -109,15 +109,15 @@ df <- df %>%
     StrikeIndicator = ifelse(
       PitchCall %in% c("StrikeSwinging", "StrikeCalled", "FoulBallNotFieldable", "FoulBall", "InPlay"), 
       1, 0),
-    WhiffIndicator = ifelse(PitchCall == "StrikeSwinging", 1, 0),
+    WhiffIndicator = ifelse(PitchCall %in% "StrikeSwinging", 1, 0),
     SwingIndicator = ifelse(
       PitchCall %in% c("StrikeSwinging", "FoulBallNotFieldable", "FoulBall", "InPlay"), 
       1, 0),
-    LHHindicator = ifelse(BatterSide == "Left", 1, 0),
-    RHHindicator = ifelse(BatterSide == "Right", 1, 0),
+    LHHindicator = ifelse(BatterSide %in% "Left", 1, 0),
+    RHHindicator = ifelse(BatterSide %in% "Right", 1, 0),
     ABindicator = ifelse(
       PlayResult %in% c("Error", "FieldersChoice", "Out", "Single", "Double", "Triple", "HomeRun") | 
-        KorBB == "Strikeout", 
+        KorBB %in% "Strikeout", 
       1, 0),
     HitIndicator = ifelse(
       PlayResult %in% c("Single", "Double", "Triple", "HomeRun"), 
@@ -128,18 +128,18 @@ df <- df %>%
         KorBB %in% c("Walk", "Strikeout"), 
       1, 0),
     LeadOffIndicator = ifelse(
-      (PAofInning == 1 & (PlayResult != "Undefined" | KorBB != "Undefined")) | 
-        PitchCall == "HitByPitch", 
+      (PAofInning == 1 & (!(PlayResult %in% "Undefined") | !(KorBB %in% "Undefined") | 
+                            PitchCall %in% "HitByPitch")), 
       1, 0),
-    HBPIndicator = ifelse(PitchCall == "HitByPitch", 1, 0),
-    WalkIndicator = ifelse(KorBB %in% c("Walk"), 1, 0),
-    BIPind = ifelse(PitchCall == "InPlay", 1, 0),
+    HBPIndicator = ifelse(PitchCall %in% "HitByPitch", 1, 0),
+    WalkIndicator = ifelse(KorBB %in% "Walk", 1, 0),
+    BIPind = ifelse(PitchCall %in% "InPlay", 1, 0),
     SolidContact = ifelse(
-      (PitchCall == "InPlay" & 
+      (PitchCall %in% "InPlay" & 
          ((ExitSpeed > 95 & Angle >= 0 & Angle <= 40) | 
             (ExitSpeed > 92 & Angle >= 8 & Angle <= 40))), 1, 0),
-    HHindicator = ifelse(PitchCall == "InPlay" & ExitSpeed > 95, 1, 0),
-    biphh = ifelse(PitchCall == "InPlay" & ExitSpeed > 15, 1, 0),
+    HHindicator = ifelse(PitchCall %in% "InPlay" & ExitSpeed > 95, 1, 0),
+    biphh = ifelse(PitchCall %in% "InPlay" & ExitSpeed > 15, 1, 0),
     FBstrikeind = ifelse(
       (PitchCall %in% c("StrikeSwinging", "StrikeCalled", "FoulBall", "FoulBallNotFieldable", "InPlay")) & 
         (FBindicator == 1), 
@@ -158,25 +158,24 @@ df <- df %>%
         (FPindicator == 1), 
       1, 0),
     OutIndicator = ifelse(
-      (PlayResult %in% c("Out", "FieldersChoice") | KorBB == "Strikeout") & HBPIndicator == 0, 
+      (PlayResult %in% c("Out", "FieldersChoice") | KorBB %in% "Strikeout") & HBPIndicator == 0, 
       1, 0),
     LOOindicator = ifelse(LeadOffIndicator == 1 & OutIndicator == 1, 1, 0),
     Zwhiffind = ifelse(WhiffIndicator == 1 & StrikeZoneIndicator == 1, 1, 0),
     Zswing = ifelse(StrikeZoneIndicator == 1 & SwingIndicator == 1, 1, 0),
-    GBindicator = ifelse(HitType == "GroundBall", 1, 0),
+    GBindicator = ifelse(HitType %in% "GroundBall", 1, 0),
     Chaseindicator = ifelse(SwingIndicator == 1 & StrikeZoneIndicator == 0, 1, 0),
     OutofZone = ifelse(StrikeZoneIndicator == 0, 1, 0),
     OnBaseindicator = ifelse(
       PlayResult %in% c("Single", "Double", "Triple", "HomeRun") | 
-        KorBB == "Walk" | 
-        PitchCall == "HitByPitch", 
+        KorBB %in% "Walk" | 
+        PitchCall %in% "HitByPitch", 
       1, 0),
-    totalbases = ifelse(PlayResult == "Single", 1, 
-                        ifelse(PlayResult == "Double", 2, 
-                               ifelse(PlayResult == "Triple", 3, 
-                                      ifelse(PlayResult == "HomeRun", 4, 0))))
+    totalbases = ifelse(PlayResult %in% "Single", 1, 
+                        ifelse(PlayResult %in% "Double", 2, 
+                               ifelse(PlayResult %in% "Triple", 3, 
+                                      ifelse(PlayResult %in% "HomeRun", 4, 0))))
   )
-
 # Debug: Check if data remains after filtering
 if (nrow(df) == 0) {
   stop("No data remains after filtering for PitcherTeam and non-Undefined pitches")

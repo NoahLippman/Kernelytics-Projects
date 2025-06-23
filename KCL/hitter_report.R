@@ -44,6 +44,8 @@ color_by_rank2 <- function(rank_vector, n_colors) {
   rank_colors2[color_index]
 }
 
+#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
+#"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
 # Load data
 data_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
 if (!file.exists(data_path)) {
@@ -73,32 +75,31 @@ if (nrow(df) == 0) {
 # Mutate data with indicators
 df <- df %>%
   mutate(
-    WhiffIndicator = ifelse(PitchCall == "StrikeSwinging", 1, 0),
+    WhiffIndicator = ifelse(PitchCall %in% "StrikeSwinging", 1, 0),
     StrikeZoneIndicator = ifelse(PlateLocSide >= -1 & PlateLocSide <= 1 & 
                                    PlateLocHeight >= 1.5 & PlateLocHeight <= 3.5, 1, 0),
-    SwingIndicator = ifelse(PitchCall %in% c("StrikeSwinging", "FoulBallNotFieldable", 
-                                             "FoulBall", "InPlay"), 1, 0),
-    BIPind = ifelse(PitchCall == "InPlay" & HitType != "Bunt", 1, 0),
+    SwingIndicator = ifelse(PitchCall %in% c("StrikeSwinging",  "FoulBall", "InPlay"), 1, 0),
+    BIPind = ifelse(PitchCall %in% "InPlay" & !(HitType %in% "Bunt"), 1, 0),
     Zwhiffind = ifelse(WhiffIndicator == 1 & StrikeZoneIndicator == 1, 1, 0),
     Zswing = ifelse(StrikeZoneIndicator == 1 & SwingIndicator == 1, 1, 0),
-    LA1030ind = ifelse(PitchCall == "InPlay" & Angle >= 10 & Angle <= 30, 1, 0),
-    Barrelind = ifelse(PitchCall == "InPlay" & ExitSpeed >= 95 & Angle >= 10 & Angle <= 32, 1, 0),
-    HHind = ifelse(PitchCall == "InPlay" & ExitSpeed >= 95, 1, 0),
-    SCind = ifelse(PitchCall == "InPlay" & 
+    LA1030ind = ifelse(PitchCall %in% "InPlay" & Angle >= 10 & Angle <= 30, 1, 0),
+    Barrelind = ifelse(PitchCall %in% "InPlay" & ExitSpeed >= 95 & Angle >= 10 & Angle <= 32, 1, 0),
+    HHind = ifelse(PitchCall %in% "InPlay" & ExitSpeed >= 95, 1, 0),
+    SCind = ifelse(PitchCall %in% "InPlay" & 
                      ((ExitSpeed > 95 & Angle >= 0 & Angle <= 35) | 
                         (ExitSpeed > 92 & Angle >= 8 & Angle <= 35)), 1, 0),
-    GBindicator = ifelse(HitType == "GroundBall", 1, 0),
-    LDind = ifelse(HitType == "LineDrive", 1, 0),
-    FBind = ifelse(HitType == "FlyBall", 1, 0),
-    Popind = ifelse(HitType == "Popup", 1, 0),
+    GBindicator = ifelse(HitType %in% "GroundBall", 1, 0),
+    LDind = ifelse(HitType %in% "LineDrive", 1, 0),
+    FBind = ifelse(HitType %in% "FlyBall", 1, 0),
+    Popind = ifelse(HitType %in% "Popup", 1, 0),
     Chaseindicator = ifelse(SwingIndicator == 1 & StrikeZoneIndicator == 0, 1, 0),
     OutofZone = ifelse(StrikeZoneIndicator == 0, 1, 0),
     PAindicator = ifelse(PitchCall %in% c("InPlay", "HitByPitch", "CatchersInterference") | 
                            KorBB %in% c("Walk", "Strikeout"), 1, 0),
-    OutIndicator = ifelse(PlayResult %in% c("Out", "FieldersChoice") | KorBB == "Strikeout", 1, 0),
-    EV100ind = ifelse(PitchCall == "InPlay" & ExitSpeed >= 100 & HitType != "Bunt", 1, 0),
-    WalkIndicator = ifelse(KorBB == "Walk", 1, 0),
-    ZStrikeTakeInd = ifelse(StrikeZoneIndicator == 1 & PitchCall == "StrikeCalled", 1, 0)
+    OutIndicator = ifelse(PlayResult %in% c("Out", "FieldersChoice") | KorBB %in% "Strikeout", 1, 0),
+    EV100ind = ifelse(PitchCall %in% "InPlay" & ExitSpeed >= 100 & !(HitType %in% "Bunt"), 1, 0),
+    WalkIndicator = ifelse(KorBB %in% "Walk", 1, 0),
+    ZStrikeTakeInd = ifelse(StrikeZoneIndicator == 1 & PitchCall %in% "StrikeCalled", 1, 0)
   )
 
 # Summarize data for individual batters
@@ -107,11 +108,11 @@ summary_data <- df %>%
   summarize(
     PA = sum(PAindicator, na.rm = TRUE),
     `BB%` = round(ifelse(sum(PAindicator) > 0, sum(WalkIndicator, na.rm = TRUE) / sum(PAindicator), NA_real_), 3) * 100,
-    `SO%` = round(ifelse(sum(PAindicator) > 0, sum(KorBB == "Strikeout", na.rm = TRUE) / sum(PAindicator), NA_real_), 3) * 100,
+    `SO%` = round(ifelse(sum(PAindicator) > 0, sum(KorBB %in% "Strikeout", na.rm = TRUE) / sum(PAindicator), NA_real_), 3) * 100,
     `IZ Strike Take%` = round(ifelse(sum(StrikeZoneIndicator) > 0, sum(ZStrikeTakeInd, na.rm = TRUE) / sum(StrikeZoneIndicator), NA_real_), 3) * 100,
-    `90th EV` = round(quantile(ExitSpeed[PitchCall == "InPlay" & HitType != "Bunt"], probs = 0.9, na.rm = TRUE), 1),
+    `90th EV` = round(quantile(ExitSpeed[PitchCall %in% "InPlay" & !(HitType %in% "Bunt")], probs = 0.9, na.rm = TRUE), 1),
     `100+ EV` = sum(EV100ind, na.rm = TRUE),
-    `Avg EV` = round(mean(ExitSpeed[PitchCall == "InPlay" & HitType != "Bunt"], na.rm = TRUE), 1),
+    `Avg EV` = round(mean(ExitSpeed[PitchCall %in% "InPlay" & !(HitType %in% "Bunt")], na.rm = TRUE), 1),
     `Max EV` = round(max(ExitSpeed, na.rm = TRUE), 1),
     `SC%` = round(ifelse(sum(BIPind) > 0, sum(SCind, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), NA_real_), 3) * 100,
     `10-30%` = round(ifelse(sum(BIPind) > 0, sum(LA1030ind, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), NA_real_), 3) * 100,
