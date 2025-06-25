@@ -64,7 +64,7 @@ message("Unique BatterTeam values: ", paste(unique(df$BatterTeam), collapse = ",
 
 # Filter data
 df <- df %>%
-  filter(BatterTeam == "Kcl bluecaps 2025",
+  filter(BatterTeam == "Kcl merchants 2025",
          TaggedPitchType != "Undefined")
 
 # Debug: Check if data remains after filtering

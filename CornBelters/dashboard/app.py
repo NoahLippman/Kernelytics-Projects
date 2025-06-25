@@ -41,7 +41,7 @@ try:
         'HitType': str,
     }
     df = pd.read_csv(data_path, dtype=dtypes)
-
+    df = df[df['PitcherTeam'] == 'Normal cornbelters']
     # Parse mixed date formats
     def parse_dates(date_str):
         if pd.isna(date_str) or not isinstance(date_str, str):
@@ -176,8 +176,16 @@ app_ui = ui.page_fluid(
             ),
             width=6
         ),
+        ui.layout_columns(
+            ui.card(
+                ui.card_header("Pitch Usage"),
+                ui.output_image("image_output2"),
+                ui.output_text("error_message2"),
+                # Add footer or download if needed
+            ),
+            width=6
+        ),
         col_widths={"xs": (6, 6), "md": (6, 6)}
-        
     ),
     
     ui.include_css(here / "styles.css") if (here / "styles.css").exists() else ui.tags.style("""

@@ -447,6 +447,69 @@ def pitch_table(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, team: str, se
 
     ax.axis('off')
 
+def time_to_angle(time_str):
+    try:
+        # Parse HH:MM format
+        hour, minute = map(int, time_str.split(':'))
+        total_minutes = hour * 60 + minute
+        if total_minutes >= 12 * 60:
+            total_minutes -= 12 * 60  # Normalize to 0-720 minutes
+        # Map to standard clock angles: 12:00 = 0°, 3:00 = 90°, 6:00 = 180°, 9:00 = 270°
+        angle_deg = (total_minutes / (12 * 60)) * 360
+        return np.radians(angle_deg)
+    except (ValueError, AttributeError):
+        return 0  # Default to 12:00
+def plot_pitcher_tilt(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, team: str, season: int, full_df: pd.DataFrame):
+    # Calculate angles for each tilt
+    df = df.copy()
+    df['Angle'] = df['Tilt'].apply(time_to_angle)  # Assuming time_to_angle is defined
+
+    # Do NOT create a new fig, ax here!
+    # fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})  # REMOVE THIS LINE
+
+    # Get unique pitch types for coloring
+    pitch_types = df['TaggedPitchType'].unique()
+    colors = sns.color_palette("husl", len(pitch_types))  # Distinct colors
+    pitch_type_colors = dict(zip(pitch_types, colors))
+
+    # Calculate average tilt and spin rate for each pitch type
+    avg_stats = df.groupby('TaggedPitchType').agg(
+        avg_tilt=('Tilt', lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]),  # Most common tilt
+        avg_spinrate=('SpinRate', 'mean')
+    ).reset_index()
+
+    # Plot circles for each pitch, colored by TaggedPitchType, with SpinRate as radial distance
+    for pitch_type in pitch_types:
+        avg_tilt = avg_stats.loc[avg_stats['TaggedPitchType'] == pitch_type, 'avg_tilt'].values[0]
+        avg_spin = avg_stats.loc[avg_stats['TaggedPitchType'] == pitch_type, 'avg_spinrate'].values[0]
+        label = f"{pitch_type}\nAvg Tilt: {avg_tilt}\nAvg Spin: {avg_spin:.0f}"
+        df_pitch = df[df['TaggedPitchType'] == pitch_type]
+        radial = df_pitch['SpinRate'] / 3000
+        sizes = 50
+        ax.scatter(df_pitch['Angle'], radial, 
+                   s=sizes, c=[pitch_type_colors[pitch_type]], label=label, alpha=0.7)
+
+    # Customize the plot
+    ax.set_theta_direction(-1)  # Clockwise
+    ax.set_theta_zero_location('N')  # 12 o'clock at the top (0°)
+    ax.set_rlim(0, .5)  # Radial limit for visibility (adjust based on SpinRate scaling)
+    # Set radial labels to correspond to SpinRate
+    spin_rate_labels = ['500', '1000', '1500', '2000', '2500', '3000']
+    radial_ticks = [float(x) / 3000 for x in spin_rate_labels]  # Scale ticks to match SpinRate scaling
+    ax.set_yticks(radial_ticks)
+    ax.set_yticklabels(spin_rate_labels)
+
+    # Set clock face labels
+    key_times = ['12:00', '01:30', '03:00', '04:30', '06:00', '07:30', '09:00', '10:30']
+    key_angles = [time_to_angle(t) for t in key_times]
+    ax.set_xticks(key_angles)
+    ax.set_xticklabels(key_times)
+
+    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+    ax.set_title('Pitches by Tilt (Clock Time), Spin Rate (Radial Distance), and Pitch Type (Color)')
+# Function to map clock time (HH:MM) to angle (in radians)
+
+
 # Modified pitching_dashboard to handle "ALL" option and use provided DataFrame
 def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: str, season: int, date: str):
     if df.empty:
