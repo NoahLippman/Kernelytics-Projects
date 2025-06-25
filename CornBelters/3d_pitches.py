@@ -19,7 +19,7 @@ def df_grouping(df: pd.DataFrame):
         'PlateLocHeight': 'plate_z'
     })
     pitch_counts = df['pitch_type'].value_counts()
-    valid_pitches = pitch_counts[pitch_counts > 3].index
+    valid_pitches = pitch_counts[pitch_counts > 0].index
 
 # Filter DataFrame to keep only pitches thrown more than 5 times
     df = df[df['pitch_type'].isin(valid_pitches)]   
@@ -135,7 +135,7 @@ def plot_3d_pitch_track(df: pd.DataFrame, pitcher_name: str):
     ax.legend(by_label.values(), by_label.keys())
 
     # Save and close
-    plt.savefig(f"CornBelters/3d/isu/{pitcher_name.replace(', ', '_')}_3d_avg_pitch_track.png", bbox_inches='tight', dpi=500)
+    plt.savefig(f"CornBelters/3d/6-21/{pitcher_name.replace(', ', '_')}_3d_avg_pitch_track.png", bbox_inches='tight', dpi=500)
     plt.close()
 
 # Main execution
@@ -157,7 +157,7 @@ dtypes = {
 }
 
 # Read CSV
-data_path = 'CornBelters/Data/NolanGirard.csv'
+data_path = 'CornBelters/Data/cornbelters6-21.csv'
 try:
     df = pd.read_csv(data_path, dtype=dtypes)
 except ValueError as e:

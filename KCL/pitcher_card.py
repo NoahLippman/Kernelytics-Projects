@@ -64,22 +64,13 @@ dtypes = {
     'PlateLocHeight': float,
     'OutsOnPlay': float,
     'RunsScored': float,
-    'KorBB': str
+    'KorBB': str,
+    'Stuff+' : float
 }
 
 # Function to compute pitching stats from local data
-def local_pitching_stats(pitcher_name: str, team: str, season: int, data_path: str):
-    try:
-        df = pd.read_csv(data_path, dtype=dtypes)
-    except ValueError as e:
-        print(f"Error reading CSV with specified dtypes: {e}")
-        print("Falling back to low_memory=False")
-        df = pd.read_csv(data_path, low_memory=False)
-        # Ensure numeric columns are properly typed
-        numeric_columns = ['OutsOnPlay', 'RunsScored', 'Swing?', 'Swing Strike?', 'Strike?', 'Chase?']
-        for col in numeric_columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-
+def local_pitching_stats(pitcher_name: str, team: str, season: int, df: pd.DataFrame):
+    df =df.copy()  # Avoid SettingWithCopyWarning
     df['Year'] = pd.to_datetime(df['Date'], errors='coerce').dt.year
     pitcher_data = df[(df['Pitcher'] == pitcher_name) & (df['PitcherTeam'] == team) & (df['Year'] == season)]
 
@@ -106,8 +97,8 @@ def local_pitching_stats(pitcher_name: str, team: str, season: int, data_path: s
     return pd.DataFrame([stats])
 
 # Function to create the pitching stats table
-def local_pitcher_stats_table(pitcher_name: str, team: str, season: int, ax: plt.Axes, stats: list, fontsize: int, data_path: str):
-    df_stats = local_pitching_stats(pitcher_name, team, season, data_path)
+def local_pitcher_stats_table(pitcher_name: str, team: str, season: int, ax: plt.Axes, stats: list, fontsize: int, df: pd.DataFrame):
+    df_stats = local_pitching_stats(pitcher_name, team, season, df)
 
     if df_stats.empty:
         print("No stats to display")
@@ -257,6 +248,7 @@ def break_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str):
 
 # Modified df_grouping to apply pitcher-specific filtering and use TaggedPitchType.count()
 def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
+
     df = df.rename(columns={
         'TaggedPitchType': 'pitch_type',
         'RelSpeed': 'release_speed',
@@ -266,8 +258,10 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'SpinRate': 'release_spin_rate',
         'RelSide': 'release_pos_x',
         'RelHeight': 'release_pos_z',
-        'Extension': 'release_extension'
+        'Extension': 'release_extension',
+        'Stuff+' : 'stuff_plus'
     })
+
 
     # Apply pitcher, team, and season filters
     df['Year'] = pd.to_datetime(df['Date'], errors='coerce').dt.year
@@ -294,7 +288,8 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         swing=('Swing?', 'sum'),
         whiff=('Swing Strike?', 'sum'),
         in_zone=('In Strike Zone?', 'sum'),
-        chase=('Chase?', 'sum')
+        chase=('Chase?', 'sum'),
+        stuff_plus=('stuff_plus','mean')
     ).reset_index()
 
     df_group['pitch_usage'] = df_group['pitch'] / df_group['pitch'].sum()
@@ -333,7 +328,8 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'chase': pitcher_data['Chase?'].sum(),
         'whiff_rate': pitcher_data['Swing Strike?'].sum() / pitcher_data['Swing?'].sum() if pitcher_data['Swing?'].sum() > 0 else np.nan,
         'in_zone_rate': pitcher_data['In Strike Zone?'].sum() / total_pitches if total_pitches > 0 else np.nan,
-        'chase_rate': pitcher_data['Chase?'].sum() / total_pitches if total_pitches > 0 else np.nan
+        'chase_rate': pitcher_data['Chase?'].sum() / total_pitches if total_pitches > 0 else np.nan,
+        'stuff_plus':pitcher_data['stuff_plus'].mean()
     }, index=[0])
 
     df_plot = pd.concat([df_group, plot_table_all], ignore_index=True)
@@ -353,7 +349,8 @@ pitch_stats_dict = {
     'release_extension': {'table_header': '$\\bf{Ext.}$', 'format': '.1f'},
     'whiff_rate': {'table_header': '$\\bf{Whiff\%}$', 'format': '.1%'},
     'in_zone_rate': {'table_header': '$\\bf{Zone\%}$', 'format': '.1%'},
-    'chase_rate': {'table_header': '$\\bf{Chase\%}$', 'format': '.1%'}
+    'chase_rate': {'table_header': '$\\bf{Chase\%}$', 'format': '.1%'},
+    'stuff_plus': {'table_header': '$\\bf{Stuff+}$', 'format': '.1f'}
 }
 
 table_columns = [
@@ -371,7 +368,8 @@ table_columns = [
     'release_extension',
     'whiff_rate',
     'in_zone_rate',
-    'chase_rate'
+    'chase_rate',
+    'stuff_plus'
 ]
 
 def plot_pitch_format(df: pd.DataFrame):
@@ -382,7 +380,7 @@ def plot_pitch_format(df: pd.DataFrame):
     return df_group
 
 cmap_sum = sns.color_palette("coolwarm", as_cmap=True)
-colour_stats = ['release_speed', 'whiff_rate', 'in_zone_rate', 'chase_rate']
+colour_stats = ['release_speed', 'whiff_rate', 'in_zone_rate', 'chase_rate','stuff_plus']
 
 def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name: str, team: str, season: int):
     # Work on a copy of full_df to avoid modifying the original
@@ -393,7 +391,7 @@ def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name
     
     # Filter for the specified season
     league_df = league_df[league_df['Year'] == season]
-    
+
     # Compute league-wide stats
     league_totals = league_df.groupby('TaggedPitchType').agg(
         pitch=('TaggedPitchType', 'count'),
@@ -401,8 +399,10 @@ def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name
         swing=('Swing?', 'sum'),
         whiff=('Swing Strike?', 'sum'),
         in_zone=('In Strike Zone?', 'sum'),
-        chase=('Chase?', 'sum')
+        chase=('Chase?', 'sum'),
+        stuff_plus = ('Stuff+','mean')
     ).reset_index()
+
     
     league_totals['whiff_rate'] = league_totals['whiff'] / league_totals['swing'].replace(0, np.nan)
     league_totals['in_zone_rate'] = league_totals['in_zone'] / league_totals['pitch']
@@ -413,8 +413,10 @@ def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name
         'release_speed': league_totals['release_speed'].mean(),
         'whiff_rate': league_totals['whiff_rate'].mean(),
         'in_zone_rate': league_totals['in_zone_rate'].mean(),
-        'chase_rate': league_totals['chase_rate'].mean()
+        'chase_rate': league_totals['chase_rate'].mean(),
+        'stuff_plus' : league_totals['stuff_plus'].mean()
     }
+
     
     colour_list_df = []
     for pt in df_group['pitch_type'].unique():
@@ -504,7 +506,7 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_right.axis('off')
 
     fontsize = 16
-    local_pitcher_stats_table(pitcher_name, team, season, ax_season_table, stats, fontsize=20, data_path=data_path)
+    local_pitcher_stats_table(pitcher_name, team, season, ax_season_table, stats, fontsize=20, df=df)
     strike_zone_plot(df, ax_plot_1, pitcher_name, 'Left', 'Pitch Locations vs LHH')
     break_plot(df, ax_plot_2, pitcher_name)
     strike_zone_plot(df, ax_plot_3, pitcher_name, 'Right', 'Pitch Locations vs RHH')
@@ -515,13 +517,13 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./KCL/Cards/6-17/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
+    filename = f"./KCL/Cards/2025/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'KCL/Data/sloths6-17.csv'
+data_path = 'KCL/Data/2025.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 # Define dtypes for reading CSV
@@ -553,7 +555,7 @@ for _, row in pitcher_teams.iterrows():
     # Call the pitching_dashboard function
     try:
         #pitcher_df = pitcher_df[pitcher_df['PitcherTeam'] == 'Normal cornbelters']
-        pitching_dashboard(pitcher_df, stats, pitcher_name, team, season, data_path)
+        pitching_dashboard(pitcher_df, stats, pitcher_name, team, season, df)
         print(f"Dashboard generated for {pitcher_name} ({team})")
     except Exception as e:
         print(f"Error generating dashboard for {pitcher_name}: {e}")
