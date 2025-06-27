@@ -469,6 +469,70 @@ def pitch_table(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, team: str, se
 
     ax.axis('off')
 
+# Function to map clock time (HH:MM) to angle (in radians)
+def time_to_angle(time_str):
+    try:
+        # Parse HH:MM format
+        hour, minute = map(int, time_str.split(':'))
+        total_minutes = hour * 60 + minute
+        if total_minutes >= 12 * 60:
+            total_minutes -= 12 * 60  # Normalize to 0-720 minutes
+        # Map to standard clock angles: 12:00 = 0°, 3:00 = 90°, 6:00 = 180°, 9:00 = 270°
+        angle_deg = (total_minutes / (12 * 60)) * 360
+        return np.radians(angle_deg)
+    except (ValueError, AttributeError):
+        return 0  # Default to 12:00
+
+
+def plot_pitcher_tilt(df, ax, pitcher_name):
+    # Calculate angles for each tilt
+    df=df.copy()
+    df = df[df['Pitcher'] == pitcher_name]  # Filter for the specific pitcher
+    df['Angle'] = df['Tilt'].apply(time_to_angle)  # Assuming time_to_angle is defined
+
+    # Set up polar plot
+    # Get unique pitch types for coloring
+    pitch_types = df['TaggedPitchType'].unique()
+    colors = sns.color_palette("husl", len(pitch_types))  # Distinct colors
+    pitch_type_colors = dict(zip(pitch_types, colors))
+
+    # Calculate average tilt and spin rate for each pitch type
+    avg_stats = df.groupby('TaggedPitchType').agg(
+        avg_tilt=('Tilt', lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]),  # Most common tilt
+        avg_spinrate=('SpinRate', 'mean')
+    ).reset_index()
+
+    # Plot circles for each pitch, colored by TaggedPitchType, with SpinRate as radial distance
+    for pitch_type in pitch_types:
+        avg_tilt = avg_stats.loc[avg_stats['TaggedPitchType'] == pitch_type, 'avg_tilt'].values[0]
+        avg_spin = avg_stats.loc[avg_stats['TaggedPitchType'] == pitch_type, 'avg_spinrate'].values[0]
+        label = f"{pitch_type}\nAvg Tilt: {avg_tilt}\nAvg Spin: {avg_spin:.0f}"
+        df_pitch = df[df['TaggedPitchType'] == pitch_type]
+        radial = df_pitch['SpinRate'] / 3000
+        sizes = 50
+        ax.scatter(df_pitch['Angle'], radial, 
+                s=sizes, c=[pitch_type_colors[pitch_type]], label=label, alpha=0.7)
+
+    # Customize the plot
+    ax.set_theta_direction(-1)  # Clockwise
+    ax.set_theta_zero_location('N')  # 12 o'clock at the top (0°)
+    ax.set_rlim(0, .5)  # Radial limit for visibility (adjust based on SpinRate scaling)
+    # Set radial labels to correspond to SpinRate
+    spin_rate_labels = ['500', '1000', '1500', '2000', '2500', '3000']
+    radial_ticks = [float(x) / 3000 for x in spin_rate_labels]  # Scale ticks to match SpinRate scaling
+    ax.set_yticks(radial_ticks)
+    ax.set_yticklabels(spin_rate_labels)
+
+    # Set clock face labels
+    key_times = ['12:00', '01:30', '03:00', '04:30', '06:00', '07:30', '09:00', '10:30']
+    key_angles = [time_to_angle(t) for t in key_times]
+    ax.set_xticks(key_angles)
+    ax.set_xticklabels(key_times)
+
+    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+    ax.set_title('Pitches by Tilt (Clock Time), Spin Rate (Radial Distance), and Pitch Type (Color)')    
+
+
 def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: str, season: int, data_path: str):
     if df.empty:
         print(f"No data found for pitcher {pitcher_name} from {team} in {season}. Exiting dashboard creation.")
@@ -477,7 +541,7 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     fig = plt.figure(figsize=(20, 20))
 
     gs = gridspec.GridSpec(6, 8,
-                           height_ratios=[2, 20, 9, 36, 36, 7],
+                           height_ratios=[2, 20, 9, 30, 36, 7],
                            width_ratios=[1, 18, 18, 18, 18, 18, 18, 1])
 
     ax_headshot = fig.add_subplot(gs[1, 1:3])
@@ -486,6 +550,8 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_season_table = fig.add_subplot(gs[2, 1:7])
     ax_plot_1 = fig.add_subplot(gs[3, 1:3])
     ax_plot_2 = fig.add_subplot(gs[3, 3:5])
+    
+    #tilt_plot = fig.add_subplot(gs[3, 3:5],projection='polar')
     ax_plot_3 = fig.add_subplot(gs[3, 5:7])
     ax_table = fig.add_subplot(gs[4, 1:7])
     ax_footer = fig.add_subplot(gs[-1, 1:7])
@@ -511,19 +577,20 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     break_plot(df, ax_plot_2, pitcher_name)
     strike_zone_plot(df, ax_plot_3, pitcher_name, 'Right', 'Pitch Locations vs RHH')
     pitch_table(df, ax_table, pitcher_name, team, season, full_df=df, fontsize=fontsize)
+    #plot_pitcher_tilt(df, tilt_plot, pitcher_name)
 
     ax_footer.text(0, 1, 'By: Max', ha='left', va='top', fontsize=24)
     ax_footer.text(0.5, 1, 'Pitch Matrix Colour Coding Compares to League Average', ha='center', va='top', fontsize=10)
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./KCL/Cards/2025/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
+    filename = f"./KCL/Cards/6-26/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'KCL/Data/2025.csv'
+data_path = 'KCL/Data/clean1.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 # Define dtypes for reading CSV
@@ -533,9 +600,16 @@ except ValueError as e:
     print(f"Error reading CSV with specified dtypes: {e}")
     print("Falling back to low_memory=False")
     df = pd.read_csv(data_path, low_memory=False)
-
+  # Filter for Normal cornbelters team
 # Convert Date to datetime
+# Player name corrections: {incorrect_name: correct_name}
+player_name_map = {
+    # "Incorrect Name": "Correct Name",
+     "Zach O'donnell": "Zach O'Donnell",
+}
+
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+df['Pitcher'] = df['Pitcher'].replace(player_name_map)
 
 # Extract unique pitchers and their most recent team
 pitcher_teams = (df.sort_values('Date', ascending=False)
@@ -548,10 +622,9 @@ pitcher_teams.columns = ['Pitcher', 'PitcherTeam']
 for _, row in pitcher_teams.iterrows():
     pitcher_name = row['Pitcher']
     team = row['PitcherTeam']
-    
     # Filter DataFrame for the current pitcher and season
     pitcher_df = df[(df['Pitcher'] == pitcher_name) & (df['PitcherTeam'] == team) & (df['Date'].dt.year == season)]
-    
+
     # Call the pitching_dashboard function
     try:
         #pitcher_df = pitcher_df[pitcher_df['PitcherTeam'] == 'Normal cornbelters']
