@@ -45,7 +45,7 @@ color_by_rank2 <- function(rank_vector, n_colors) {
 }
 
 # Load data
-data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/week1.csv"
+data_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/KCL/Data/2025.csv"
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
 }
@@ -67,10 +67,11 @@ message("Unique PitcherTeam values: ", paste(unique(df$PitcherTeam), collapse = 
 # Filter and mutate data
 df <- df %>%
   filter(
-    PitcherTeam %in% c("Kcl merchants 2025", "Normal cornbelters"),
+    PitcherTeam %in% c("Kcl bobcats 2025", "Normal cornbelters"),
     !is.na(RelSpeed),
     !(TaggedPitchType %in% "Undefined"),
-    !(PitchCall %in% "Undefined")
+    !(PitchCall %in% "Undefined"),
+    Pitcher %in% c("Carter Sellers")
   ) %>%
   mutate(
     FBindicator = ifelse(TaggedPitchType %in% c("Fastball", "Sinker"), 1, 0),
@@ -269,9 +270,10 @@ custom_theme <- ttheme_default(
     bg_params = list(fill = "#CC0000")  # Header background color
   )
 )
-
+#C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/carter_sellers.pdf
+#C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv
 # Save table and glossary as PDF
-pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/merchants_pitchers.pdf"
+pdf_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/KCL/pitcher_reports/carter_sellers.pdf"
 pdf(file = pdf_path, width = 11, height = 8.5)
 
 # Create a new page for the table
