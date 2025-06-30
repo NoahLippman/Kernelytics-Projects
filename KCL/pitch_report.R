@@ -45,7 +45,7 @@ color_by_rank2 <- function(rank_vector, n_colors) {
 }
 
 # Load data
-data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/report2.csv"
+data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/6-28merch.csv"
 
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
@@ -68,7 +68,7 @@ message("Unique PitcherTeam values: ", paste(unique(df$PitcherTeam), collapse = 
 # Filter and mutate data
 df <- df %>%
   filter(
-    PitcherTeam %in% c('Kcl groundsloths 2025'),
+    Pitcher %in% c('Thomas Mickels'),
     !is.na(RelSpeed),
     !(TaggedPitchType %in% "Undefined"),
     !(PitchCall %in% "Undefined")
@@ -274,7 +274,7 @@ custom_theme <- ttheme_default(
 #C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/carter_sellers.pdf
 #C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv
 # Save table and glossary as PDF
-pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/groundsloths6-30pitcher.pdf"
+pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/mickels.pdf"
 pdf(file = pdf_path, width = 11, height = 8.5)
 
 # Create a new page for the table
