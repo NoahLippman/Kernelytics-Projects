@@ -157,7 +157,7 @@ def local_pitcher_stats_table(pitcher_name: str, ax: plt.Axes, stats: list, font
         cellText=display_values,
         colLabels=[stats_dict[s]['table_header'] for s in stats],
         cellLoc='center',
-        bbox=[0.00, 0.0, 1, 1]
+        bbox=[-.05, 0.0, 1, 1]
     )
 
     table_fg.set_fontsize(fontsize)
@@ -246,7 +246,7 @@ def plot_pitcher_percentiles(df, pitcher_name, save_path=None):
     ax_footer = fig.add_subplot(gs[5, 0])
 
     # 1. Pitcher Name as Title
-    ax_title.text(0.5, 0.5, f"{pitcher_name} Percentile Report",
+    ax_title.text(0.45, 0.5, f"{pitcher_name} Percentile Report",
                   ha='center', va='center', fontsize=20, fontweight='bold')
     ax_title.axis('off')
 
@@ -298,8 +298,8 @@ def plot_pitcher_percentiles(df, pitcher_name, save_path=None):
     local_pitcher_stats_table(pitcher_name, ax_stats_table, season_stats_keys, fontsize=12, df=df)
     
     # 4. Footer
-    ax_footer.text(0, 0.5, 'By: Max', ha='left', va='center', fontsize=10)
-    ax_footer.text(0.5, 0.5, 'Pitch Matrix Colour Coding Compares to League Average', ha='center', va='center', fontsize=8)
+    ax_footer.text(-.1, 0.5, 'By: Max', ha='left', va='center', fontsize=10)
+    ax_footer.text(0.45, 0.5, 'Pitch Matrix Colour Coding Compares to League Average', ha='center', va='center', fontsize=8)
     ax_footer.text(1, 0.5, 'Data: Yakkertech', ha='right', va='center', fontsize=10)
     ax_footer.axis('off')
 
