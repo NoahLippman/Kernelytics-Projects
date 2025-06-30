@@ -45,7 +45,8 @@ color_by_rank2 <- function(rank_vector, n_colors) {
 }
 
 # Load data
-data_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/KCL/Data/2025.csv"
+data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/report2.csv"
+
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
 }
@@ -67,11 +68,11 @@ message("Unique PitcherTeam values: ", paste(unique(df$PitcherTeam), collapse = 
 # Filter and mutate data
 df <- df %>%
   filter(
-    PitcherTeam %in% c("Kcl bobcats 2025", "Normal cornbelters"),
+    PitcherTeam %in% c('Kcl groundsloths 2025'),
     !is.na(RelSpeed),
     !(TaggedPitchType %in% "Undefined"),
-    !(PitchCall %in% "Undefined"),
-    Pitcher %in% c("Carter Sellers")
+    !(PitchCall %in% "Undefined")
+   
   ) %>%
   mutate(
     FBindicator = ifelse(TaggedPitchType %in% c("Fastball", "Sinker"), 1, 0),
@@ -165,7 +166,7 @@ df <- df %>%
     LOOindicator = ifelse(LeadOffIndicator == 1 & OutIndicator == 1, 1, 0),
     Zwhiffind = ifelse(WhiffIndicator == 1 & StrikeZoneIndicator == 1, 1, 0),
     Zswing = ifelse(StrikeZoneIndicator == 1 & SwingIndicator == 1, 1, 0),
-    GBindicator = ifelse(HitType %in% "GroundBall", 1, 0),
+    GBindicator = ifelse(TaggedHitType %in% "GroundBall", 1, 0),
     Chaseindicator = ifelse(SwingIndicator == 1 & StrikeZoneIndicator == 0, 1, 0),
     OutofZone = ifelse(StrikeZoneIndicator == 0, 1, 0),
     OnBaseindicator = ifelse(
@@ -262,18 +263,18 @@ bg_colors[is.na(bg_colors)] <- na_color  # Replace NA with na_color
 # Define custom table theme
 custom_theme <- ttheme_default(
   core = list(
-    fg_params = list(fontsize = 5, col = "black"),  # Text color for table content
+    fg_params = list(fontsize = 7, col = "black"),  # Text color for table content
     bg_params = list(fill = bg_colors)  # Apply percentile-based background colors
   ),
   colhead = list(
-    fg_params = list(fontsize = 6, col = "white", fontface = "bold"),
+    fg_params = list(fontsize = 8, col = "white", fontface = "bold"),
     bg_params = list(fill = "#CC0000")  # Header background color
   )
 )
 #C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/carter_sellers.pdf
 #C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv
 # Save table and glossary as PDF
-pdf_path <- "C:/Users/maxim/Desktop/Kernelytics-Projects/KCL/pitcher_reports/carter_sellers.pdf"
+pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/pitcher_reports/groundsloths6-30pitcher.pdf"
 pdf(file = pdf_path, width = 11, height = 8.5)
 
 # Create a new page for the table

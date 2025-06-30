@@ -47,7 +47,7 @@ color_by_rank2 <- function(rank_vector, n_colors) {
 #"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
 #"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
 # Load data
-data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/week1.csv"
+data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/report2.csv"
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
 }
@@ -64,9 +64,9 @@ message("Unique BatterTeam values: ", paste(unique(df$BatterTeam), collapse = ",
 
 # Filter data
 df <- df %>%
-  filter(BatterTeam == "Kcl merchants 2025",
-         TaggedPitchType != "Undefined")
-
+  filter(TaggedPitchType != "Undefined",
+         BatterTeam == "Kcl groundsloths 2025")
+#BatterTeam == "Kcl merchants 2025",
 # Debug: Check if data remains after filtering
 if (nrow(df) == 0) {
   stop("No data remains after filtering for BatterTeam == 'Kcl bobcats 2025' and TaggedPitchType != 'Undefined'")
@@ -79,7 +79,7 @@ df <- df %>%
     StrikeZoneIndicator = ifelse(PlateLocSide >= -1 & PlateLocSide <= 1 & 
                                    PlateLocHeight >= 1.5 & PlateLocHeight <= 3.5, 1, 0),
     SwingIndicator = ifelse(PitchCall %in% c("StrikeSwinging",  "FoulBall", "InPlay"), 1, 0),
-    BIPind = ifelse(PitchCall %in% "InPlay" & !(HitType %in% "Bunt"), 1, 0),
+    BIPind = ifelse(PitchCall %in% "InPlay" & !(TaggedHitType %in% "Bunt"), 1, 0),
     Zwhiffind = ifelse(WhiffIndicator == 1 & StrikeZoneIndicator == 1, 1, 0),
     Zswing = ifelse(StrikeZoneIndicator == 1 & SwingIndicator == 1, 1, 0),
     LA1030ind = ifelse(PitchCall %in% "InPlay" & Angle >= 10 & Angle <= 30, 1, 0),
@@ -88,16 +88,16 @@ df <- df %>%
     SCind = ifelse(PitchCall %in% "InPlay" & 
                      ((ExitSpeed > 95 & Angle >= 0 & Angle <= 35) | 
                         (ExitSpeed > 92 & Angle >= 8 & Angle <= 35)), 1, 0),
-    GBindicator = ifelse(HitType %in% "GroundBall", 1, 0),
-    LDind = ifelse(HitType %in% "LineDrive", 1, 0),
-    FBind = ifelse(HitType %in% "FlyBall", 1, 0),
-    Popind = ifelse(HitType %in% "Popup", 1, 0),
+    GBindicator = ifelse(TaggedHitType %in% "GroundBall", 1, 0),
+    LDind = ifelse(TaggedHitType %in% "LineDrive", 1, 0),
+    FBind = ifelse(TaggedHitType %in% "FlyBall", 1, 0),
+    Popind = ifelse(TaggedHitType %in% "Popup", 1, 0),
     Chaseindicator = ifelse(SwingIndicator == 1 & StrikeZoneIndicator == 0, 1, 0),
     OutofZone = ifelse(StrikeZoneIndicator == 0, 1, 0),
     PAindicator = ifelse(PitchCall %in% c("InPlay", "HitByPitch", "CatchersInterference") | 
                            KorBB %in% c("Walk", "Strikeout"), 1, 0),
     OutIndicator = ifelse(PlayResult %in% c("Out", "FieldersChoice") | KorBB %in% "Strikeout", 1, 0),
-    EV100ind = ifelse(PitchCall %in% "InPlay" & ExitSpeed >= 100 & !(HitType %in% "Bunt"), 1, 0),
+    EV100ind = ifelse(PitchCall %in% "InPlay" & ExitSpeed >= 100 & !(TaggedHitType %in% "Bunt"), 1, 0),
     WalkIndicator = ifelse(KorBB %in% "Walk", 1, 0),
     ZStrikeTakeInd = ifelse(StrikeZoneIndicator == 1 & PitchCall %in% "StrikeCalled", 1, 0)
   )
@@ -110,9 +110,9 @@ summary_data <- df %>%
     `BB%` = round(ifelse(sum(PAindicator) > 0, sum(WalkIndicator, na.rm = TRUE) / sum(PAindicator), NA_real_), 3) * 100,
     `SO%` = round(ifelse(sum(PAindicator) > 0, sum(KorBB %in% "Strikeout", na.rm = TRUE) / sum(PAindicator), NA_real_), 3) * 100,
     `IZ Strike Take%` = round(ifelse(sum(StrikeZoneIndicator) > 0, sum(ZStrikeTakeInd, na.rm = TRUE) / sum(StrikeZoneIndicator), NA_real_), 3) * 100,
-    `90th EV` = round(quantile(ExitSpeed[PitchCall %in% "InPlay" & !(HitType %in% "Bunt")], probs = 0.9, na.rm = TRUE), 1),
+    `90th EV` = round(quantile(ExitSpeed[PitchCall %in% "InPlay" & !(TaggedHitType %in% "Bunt")], probs = 0.9, na.rm = TRUE), 1),
     `100+ EV` = sum(EV100ind, na.rm = TRUE),
-    `Avg EV` = round(mean(ExitSpeed[PitchCall %in% "InPlay" & !(HitType %in% "Bunt")], na.rm = TRUE), 1),
+    `Avg EV` = round(mean(ExitSpeed[PitchCall %in% "InPlay" & !(TaggedHitType %in% "Bunt")], na.rm = TRUE), 1),
     `Max EV` = round(max(ExitSpeed, na.rm = TRUE), 1),
     `SC%` = round(ifelse(sum(BIPind) > 0, sum(SCind, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), NA_real_), 3) * 100,
     `10-30%` = round(ifelse(sum(BIPind) > 0, sum(LA1030ind, na.rm = TRUE) / sum(BIPind, na.rm = TRUE), NA_real_), 3) * 100,
@@ -172,11 +172,11 @@ bg_colors[is.na(bg_colors)] <- na_color  # Replace NA with na_color
 # Define custom table theme
 custom_theme <- ttheme_default(
   core = list(
-    fg_params = list(fontsize = 5, col = "black"),  # Text color for table content
+    fg_params = list(fontsize = 7, col = "black"),  # Text color for table content
     bg_params = list(fill = bg_colors)  # Apply percentile-based background colors
   ),
   colhead = list(
-    fg_params = list(fontsize = 6, col = "white", fontface = "bold"),
+    fg_params = list(fontsize = 8, col = "white", fontface = "bold"),
     bg_params = list(fill = "#CC0000")  # Header background color
   )
 )
@@ -185,7 +185,7 @@ custom_theme <- ttheme_default(
 #"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/bobcats.pdf"
 # Define PDF output path
 # Define PDF output path
-pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/merchants_hitter.pdf"
+pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/groundsloths6-30hitter.pdf"
 
 # Open PDF device with landscape dimensions
 pdf(file = pdf_path, width = 11, height = 8.5)
@@ -205,9 +205,11 @@ grid.table(
 )
 
 # Add glossary text below the table
+grid.newpage()
+grid.text("Glossary of Terms", x = 0.5, y = 0.95, gp = gpar(fontsize = 14, fontface = "bold", col = "black"))
+
 grid.text(
   paste(
-    "Glossary of Terms:\n",
     "PA: Plate Appearance - A batter's turn at bat, resulting in outcomes like hits, walks, strikeouts, or other results.\n",
     "BB%: Walk Percentage - The percentage of plate appearances resulting in a walk.\n",
     "SO%: Strikeout Percentage - The percentage of plate appearances resulting in a strikeout.\n",
@@ -229,9 +231,9 @@ grid.text(
     "Pop%: Popup Percentage - The percentage of batted balls classified as popups."
   ),
   x = 0.5,              # Center horizontally
-  y = 0.25,             # Place below the table (adjust as needed)
+  y = 0.9,              # Start near the top of the page
   just = c("center", "top"),  # Center-align and anchor at top
-  gp = gpar(fontsize = 8, fontface = "plain", col = "black", lineheight = 0.8)
+  gp = gpar(fontsize = 12, fontface = "plain", col = "black", lineheight = 0.7)  # Larger font, compact spacing
 )
 
 
