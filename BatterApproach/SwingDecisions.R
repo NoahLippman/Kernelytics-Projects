@@ -1,4 +1,5 @@
 library(tidyverse)
+library(purrr)
 
 ## Data Collection ##
 kcl_path = "/Users/noahlippman/Documents/Github/Kernelytics-Projects/kclData"
@@ -170,11 +171,150 @@ takeScore <- function(player_name, row){
 decisionScoreData <- function(player_name){
   playerPitches <- xWOBACON_Data %>%
     filter(Batter == player_name)
-  
   playerPitches <- playerPitches %>%
-    rowwise() %>%
-    mutate(decisionScore = if_else(PitchCall %in% c("Foul","StrikeSwinging", "InPlay"), swingScore(player_name, pick(xZone, yZone, Balls, Strikes, PitchCall)), takeScore(player_name, pick(xZone, yZone, Balls, Strikes, PitchCall)))) %>%
-    ungroup()
+    mutate(decisionScore = pmap_dbl(
+      list(xZone = xZone, yZone = yZone, Balls = Balls, Strikes = Strikes, PitchCall = PitchCall),
+      function(xZone, yZone, Balls, Strikes, PitchCall) {
+        rowData <- tibble(xZone = xZone, yZone = yZone, Balls = Balls, Strikes = Strikes, PitchCall = PitchCall)
+        
+        if (PitchCall %in% c("Foul", "StrikeSwinging", "InPlay")) {
+          swingScore(player_name, rowData)
+        } else {
+          takeScore(player_name, rowData)
+        }
+      }
+    ))
   
   return(playerPitches %>% select(PitchCall, xZone, yZone, Balls, Strikes, decisionScore))
+}
+
+leage_Count_xWOBA <- function(){
+  xWOBA_Data_P <- xWOBA_Data %>%
+    mutate(atBatID = paste(Date,PAofInning,PitcherTeam,BatterTeam,Inning))
+  
+  abResults <- xWOBA_Data_P %>% 
+    filter(!(is.na(xWOBA))) %>%
+    rename(xWOBA_Result = xWOBA) %>%
+    select(atBatID, xWOBA_Result)
+  
+  xWOBA_Data_P <- xWOBA_Data_P %>%
+    inner_join(abResults, join_by(atBatID))
+  
+  countResults_P <- xWOBA_Data_P %>% 
+    group_by(Balls, Strikes) %>% 
+    summarise(averageXWOBA = mean(xWOBA_Result), atBats = length(xWOBA_Result))
+  
+  print(paste("Mean League xWOBA = ", mean(xWOBACON_Data$xWOBA, na.rm = TRUE)))
+  return(countResults_P)
+}
+
+# Process Data into heatmap data
+data_processor <- function(data){
+  in_zone_Matrix <- data %>%
+    filter(xZone > 0 & xZone < 4 & yZone > 0 & yZone < 4) %>%
+    group_by(yZone, xZone) %>%
+    mutate(height = 1) %>%
+    mutate(width  = 1)
+  
+  xOut_Matrix <- data %>%
+    filter(xZone == 0 | xZone == 4 & yZone != 0 & yZone != 4) %>%
+    group_by(xZone) %>%
+    summarise(xWOBA = mean(xWOBA, na.rm = TRUE), SwingingStrikeAverage = mean(SwingingStrikeAverage, na.rm = TRUE)) %>%
+    mutate(yZone = 2) %>%
+    mutate(height = 3) %>%
+    mutate(width  = 1)
+  
+  yOut_Matrix <- data %>%
+    filter(yZone == 0 | yZone == 4 & xZone != 0 & xZone != 4) %>%
+    group_by(yZone) %>%
+    summarise(xWOBA = mean(xWOBA, na.rm = TRUE), SwingingStrikeAverage = mean(SwingingStrikeAverage, na.rm = TRUE)) %>%
+    mutate(xZone = 2) %>%
+    mutate(height = 1) %>%
+    mutate(width  = 3)
+  
+  corner_Matrix <- data %>%
+    filter((xZone == 0 & yZone == 0)|
+             (xZone == 0 & yZone == 4)|
+             (xZone == 4 & yZone == 0)|
+             (xZone == 4 & yZone == 4)) %>%
+    mutate(height = 1) %>%
+    mutate(width  = 1)
+  
+  full <- rbind(in_zone_Matrix, xOut_Matrix, yOut_Matrix, corner_Matrix)
+  return(full)
+}
+
+xWOBA_HeatMap <- function(player_name) {
+  old_data <- mergedData %>% filter(Batter == player_name)
+  data <- data_processor(old_data)
+  p <- ggplot(data, aes(xZone, yZone, fill = xWOBA)) +
+    geom_tile(aes(height = height, width = width)) +
+    ylim(-2,6) +
+    xlim(-6, 10) + 
+    theme_void() +
+    scale_fill_gradientn(
+      colours = c("#1E90FF", "#87CEEB", "#ADD8E6", "white", "#FFC1CC", "#FF6666", "#FF6666"),
+      values = scales::rescale(c(0,.1,.2,.3,.4,.5,.6)),
+      na.value = "grey90"
+    ) +
+    labs(fill = "xWOBA") + 
+    theme(legend.position.inside = c(.85,.5)) + 
+    geom_text(aes(label = round(xWOBA,2)), color = "black") +
+    geom_segment(aes(x = .5, y = .5, xend = 3.5, yend = .5), linewidth = 1) + 
+    geom_segment(aes(x = .5, y = 3.5, xend = 3.5, yend = 3.5), linewidth = 1) + 
+    geom_segment(aes(x = .5, y = .5, xend = .5, yend = 3.5), linewidth = 1) +  
+    geom_segment(aes(x = 3.5, y = .5, xend = 3.5, yend = 3.5), linewidth = 1) +
+    geom_segment(aes(x = .5, y = -1, xend = 3.5, yend = -1), linewidth = 1) +
+    geom_segment(aes(x = .5, y = -1, xend = .5, yend = -1.5), linewidth = 1) +
+    geom_segment(aes(x = 3.5, y = -1, xend = 3.5, yend = -1.5), linewidth = 1) +
+    geom_segment(aes(x = .5, y = -1.5, xend = 2, yend = -2), linewidth = 1) +
+    geom_segment(aes(x = 3.5, y = -1.5, xend = 2, yend = -2), linewidth = 1) + 
+    ggtitle(paste("xWOBA by Zone For", player_name)) +
+    theme(plot.title = element_text(hjust = .5)) + 
+    theme(plot.title = element_text(vjust = -10)) +
+    theme(plot.subtitle = element_text(hjust =.5, vjust = -20))
+  return(p)
+}
+
+inPlayRate_Heat_Map <- function(player_name){
+  old_data <- mergedData %>% filter(Batter == player_name)
+  data <- data_processor(old_data) %>% 
+    mutate(InPlayRate = 1 - SwingingStrikeAverage)
+  p <- ggplot(data, aes(xZone, yZone, fill = InPlayRate)) +
+    geom_tile(aes(height = height, width = width)) +
+    ylim(-2,6) +
+    xlim(-6, 10) + 
+    theme_void() +
+    scale_fill_gradientn(
+      colours = c("#1E90FF", "#87CEEB", "#ADD8E6", "white", "#FFC1CC", "#FF6666", "#FF6666"),
+      values = scales::rescale(c(0,.1,.2,.3,.4,.5,.6)),
+      na.value = "grey90"
+    ) +
+    labs(fill = "InPlayRate") + 
+    theme(legend.position.inside = c(.85,.5)) + 
+    geom_text(aes(label = round(InPlayRate,2)), color = "black") +
+    geom_segment(aes(x = .5, y = .5, xend = 3.5, yend = .5), linewidth = 1) + 
+    geom_segment(aes(x = .5, y = 3.5, xend = 3.5, yend = 3.5), linewidth = 1) + 
+    geom_segment(aes(x = .5, y = .5, xend = .5, yend = 3.5), linewidth = 1) +  
+    geom_segment(aes(x = 3.5, y = .5, xend = 3.5, yend = 3.5), linewidth = 1) +
+    geom_segment(aes(x = .5, y = -1, xend = 3.5, yend = -1), linewidth = 1) +
+    geom_segment(aes(x = .5, y = -1, xend = .5, yend = -1.5), linewidth = 1) +
+    geom_segment(aes(x = 3.5, y = -1, xend = 3.5, yend = -1.5), linewidth = 1) +
+    geom_segment(aes(x = .5, y = -1.5, xend = 2, yend = -2), linewidth = 1) +
+    geom_segment(aes(x = 3.5, y = -1.5, xend = 2, yend = -2), linewidth = 1) + 
+    ggtitle(paste("InPlayRate by Zone For", player_name)) +
+    theme(plot.title = element_text(hjust = .5)) + 
+    theme(plot.title = element_text(vjust = -10)) +
+    theme(plot.subtitle = element_text(hjust =.5, vjust = -20))
+  return(p)
+}
+
+swingDecisionMatrix <- function(player_name){
+  xZone <- c(0,1,2,3,4)
+  yZone <- c(0,1,2,3,4)
+  balls <- c(0,1,2,3)
+  strikes <- c(0,1,2)
+
+  situations <- expand.grid(xZone,yZone, balls, strikes)
+  return(situations)
 }
