@@ -608,6 +608,7 @@ player_name_map = {
      "Zach O'donnell": "Zach O'Donnell",
 }
 
+df = df[df['Pitcher'] == 'Thomas Mickels']
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['Pitcher'] = df['Pitcher'].replace(player_name_map)
 

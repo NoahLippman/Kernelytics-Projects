@@ -45,7 +45,7 @@ color_by_rank2 <- function(rank_vector, n_colors) {
 }
 
 # Load data
-data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/6-28merch.csv"
+data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
 
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
