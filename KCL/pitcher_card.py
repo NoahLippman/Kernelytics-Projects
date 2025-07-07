@@ -65,7 +65,8 @@ dtypes = {
     'OutsOnPlay': float,
     'RunsScored': float,
     'KorBB': str,
-    'Stuff+' : float
+    'Stuff+' : float,
+    'xWOBA' : float
 }
 
 # Function to compute pitching stats from local data
@@ -191,6 +192,7 @@ def strike_zone_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str, batter_s
     ax.get_legend().remove()
 
 def break_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str):
+    # Rename columns
     df = df.rename(columns={
         'HorzBreak': 'pfx_x',
         'InducedVertBreak': 'pfx_z',
@@ -198,52 +200,74 @@ def break_plot(df: pd.DataFrame, ax: plt.Axes, pitcher_name: str):
         'PitcherThrows': 'p_throws'
     })
 
+    # Map pitch types and handle missing values
     df['pitch_type'] = df['pitch_type'].fillna('UNKNOWN').astype(str).map(pitch_mapping).fillna('UNKNOWN')
 
+    # Check for missing pitch types in color palette
     missing_pitches = set(df['pitch_type']) - set(dict_colour.keys())
     if missing_pitches:
         raise ValueError(f"The palette dictionary is missing keys: {missing_pitches}")
 
+    # Font properties
     font_properties = {'fontsize': 10}
     font_properties_axes = {'fontsize': 12, 'weight': 'bold'}
     font_properties_titles = {'fontsize': 14, 'weight': 'bold'}
 
+    # Convert Cartesian (pfx_x, pfx_z) to polar coordinates
+    # Radius = magnitude of break (distance from origin)
+    radii = np.sqrt(df['pfx_x']**2 + df['pfx_z']**2)
+    # Theta = angle of break (direction)
+    theta = np.arctan2(df['pfx_z'], df['pfx_x'])
+
+    # Convert polar to Cartesian for plotting (to create circular appearance)
+    x = radii * np.cos(theta)
+    y = radii * np.sin(theta)
+
+    # Create scatter plot with Seaborn
     sns.scatterplot(ax=ax,
-                    x=df['pfx_x'],
-                    y=df['pfx_z'],
+                    x=x,
+                    y=y,
                     hue=df['pitch_type'],
                     palette=dict_colour,
                     ec='black',
                     alpha=0.8,
                     zorder=2)
-    
+
+    # Get pitching side
     pitching_side = df['p_throws'][df['p_throws'].notna()].iloc[0] if df['p_throws'].notna().any() else 'Unknown'
-    
+
+    # Add reference lines
     ax.axhline(y=0, color='#808080', alpha=0.5, linestyle='--', zorder=1)
     ax.axvline(x=0, color='#808080', alpha=0.5, linestyle='--', zorder=1)
 
-    ax.set_xlabel('Horizontal Break (in, Pitcher\'s View)', fontdict=font_properties_axes)
-    ax.set_ylabel('Induced Vertical Break (in)', fontdict=font_properties_axes)
-    ax.set_title(f"Pitch Breaks\n{pitcher_name} - {pitching_side}", fontdict=font_properties_titles)
+    # Set labels and title
+    ax.set_xlabel('Horizontal Break (Transformed)', fontdict=font_properties_axes)
+    ax.set_ylabel('Vertical Break (Transformed)', fontdict=font_properties_axes)
+    ax.set_title(f"Pitch Breaks (Circular Layout)\n{pitcher_name} - {pitching_side}", fontdict=font_properties_titles)
 
-    ax.set_xticks(range(-20, 21, 10))
-    ax.set_xticklabels(range(-20, 21, 10), fontdict=font_properties)
-    ax.set_yticks(range(-20, 21, 10))
-    ax.set_yticklabels(range(-20, 21, 10), fontdict=font_properties)
+    # Set ticks and limits
+    max_radius = radii.max() * 1.1  # Add 10% margin
+    ax.set_xlim((-max_radius, max_radius))
+    ax.set_ylim((-max_radius, max_radius))
+    ax.set_xticks(np.linspace(-max_radius, max_radius, 5))
+    ax.set_yticks(np.linspace(-max_radius, max_radius, 5))
+    ax.set_xticklabels([int(x) for x in np.linspace(-max_radius, max_radius, 5)], fontdict=font_properties)
+    ax.set_yticklabels([int(x) for x in np.linspace(-max_radius, max_radius, 5)], fontdict=font_properties)
 
-    ax.set_xlim((-25, 25))
-    ax.set_ylim((-25, 25))
-
-    ax.text(-24.2, -24.2, s='← First Base', fontstyle='italic', ha='left', va='bottom',
+    # Add base annotations
+    ax.text(-max_radius * 0.95, -max_radius * 0.95, s='← First Base', fontstyle='italic', ha='left', va='bottom',
             bbox=dict(facecolor='white', edgecolor='black'), fontsize=10, zorder=3)
-    ax.text(24.2, -24.2, s='Third Base →', fontstyle='italic', ha='right', va='bottom',
+    ax.text(max_radius * 0.95, -max_radius * 0.95, s='Third Base →', fontstyle='italic', ha='right', va='bottom',
             bbox=dict(facecolor='white', edgecolor='black'), fontsize=10, zorder=3)
 
+    # Ensure circular appearance
     ax.set_aspect('equal', adjustable='box')
 
+    # Format ticks as integers
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: int(x)))
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: int(x)))
 
+    # Remove legend
     ax.get_legend().remove()
 
 # Modified df_grouping to apply pitcher-specific filtering and use TaggedPitchType.count()
@@ -259,7 +283,8 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'RelSide': 'release_pos_x',
         'RelHeight': 'release_pos_z',
         'Extension': 'release_extension',
-        'Stuff+' : 'stuff_plus'
+        'Stuff+' : 'stuff_plus',
+        'xWOBA' : 'xwoba'
     })
 
 
@@ -289,7 +314,8 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         whiff=('Swing Strike?', 'sum'),
         in_zone=('In Strike Zone?', 'sum'),
         chase=('Chase?', 'sum'),
-        stuff_plus=('stuff_plus','mean')
+        stuff_plus=('stuff_plus','mean'),
+        xwoba = ('xwoba', 'mean')
     ).reset_index()
 
     df_group['pitch_usage'] = df_group['pitch'] / df_group['pitch'].sum()
@@ -329,7 +355,8 @@ def df_grouping(df: pd.DataFrame, pitcher_name: str, team: str, season: int):
         'whiff_rate': pitcher_data['Swing Strike?'].sum() / pitcher_data['Swing?'].sum() if pitcher_data['Swing?'].sum() > 0 else np.nan,
         'in_zone_rate': pitcher_data['In Strike Zone?'].sum() / total_pitches if total_pitches > 0 else np.nan,
         'chase_rate': pitcher_data['Chase?'].sum() / total_pitches if total_pitches > 0 else np.nan,
-        'stuff_plus':pitcher_data['stuff_plus'].mean()
+        'stuff_plus':pitcher_data['stuff_plus'].mean(),
+        'xwoba':pitcher_data['xwoba'].mean()
     }, index=[0])
 
     df_plot = pd.concat([df_group, plot_table_all], ignore_index=True)
@@ -350,7 +377,8 @@ pitch_stats_dict = {
     'whiff_rate': {'table_header': '$\\bf{Whiff\%}$', 'format': '.1%'},
     'in_zone_rate': {'table_header': '$\\bf{Zone\%}$', 'format': '.1%'},
     'chase_rate': {'table_header': '$\\bf{Chase\%}$', 'format': '.1%'},
-    'stuff_plus': {'table_header': '$\\bf{Stuff+}$', 'format': '.1f'}
+    'stuff_plus': {'table_header': '$\\bf{Stuff+}$', 'format': '.1f'},
+    'xwoba' :{'table_header': '$\\bf{xWOBA}$', 'format': '.3f'}
 }
 
 table_columns = [
@@ -369,7 +397,8 @@ table_columns = [
     'whiff_rate',
     'in_zone_rate',
     'chase_rate',
-    'stuff_plus'
+    'stuff_plus',
+    'xwoba'
 ]
 
 def plot_pitch_format(df: pd.DataFrame):
@@ -380,7 +409,7 @@ def plot_pitch_format(df: pd.DataFrame):
     return df_group
 
 cmap_sum = sns.color_palette("coolwarm", as_cmap=True)
-colour_stats = ['release_speed', 'whiff_rate', 'in_zone_rate', 'chase_rate','stuff_plus']
+colour_stats = ['release_speed', 'whiff_rate', 'in_zone_rate', 'chase_rate','stuff_plus','xwoba']
 
 def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name: str, team: str, season: int):
     # Work on a copy of full_df to avoid modifying the original
@@ -400,7 +429,8 @@ def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name
         whiff=('Swing Strike?', 'sum'),
         in_zone=('In Strike Zone?', 'sum'),
         chase=('Chase?', 'sum'),
-        stuff_plus = ('Stuff+','mean')
+        stuff_plus = ('Stuff+','mean'),
+        xwoba = ('xWOBA', 'mean')
     ).reset_index()
 
     
@@ -414,7 +444,8 @@ def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name
         'whiff_rate': league_totals['whiff_rate'].mean(),
         'in_zone_rate': league_totals['in_zone_rate'].mean(),
         'chase_rate': league_totals['chase_rate'].mean(),
-        'stuff_plus' : league_totals['stuff_plus'].mean()
+        'stuff_plus' : league_totals['stuff_plus'].mean(),
+        'xwoba' : league_totals['xwoba'].mean()
     }
 
     
@@ -427,6 +458,10 @@ def get_cell_colours(df_group: pd.DataFrame, full_df: pd.DataFrame, pitcher_name
                 value = pd.to_numeric(select_df[tb], errors='coerce').mean()
                 if np.isnan(value):
                     colour_list_df_inner.append('#ffffff')
+                elif tb == 'xwoba':
+                    # Invert colormap for xwoba (lower is better)
+                    normalize = mcolors.Normalize(vmin=league_averages[tb] * 0.7, vmax=league_averages[tb] * 1.3)
+                    colour_list_df_inner.append(mcolors.to_hex(cmap_sum.reversed()(normalize(value))))
                 elif tb == 'release_speed':
                     normalize = mcolors.Normalize(vmin=league_averages[tb] * 0.95, vmax=league_averages[tb] * 1.05)
                     colour_list_df_inner.append(mcolors.to_hex(cmap_sum(normalize(value))))
@@ -584,13 +619,13 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./KCL/Cards/2025/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
+    filename = f"./KCL/Cards/7-1/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'KCL/Data/2025.csv'
+data_path = 'KCL/Data/7-1.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 # Define dtypes for reading CSV
@@ -600,7 +635,6 @@ except ValueError as e:
     print(f"Error reading CSV with specified dtypes: {e}")
     print("Falling back to low_memory=False")
     df = pd.read_csv(data_path, low_memory=False)
-  # Filter for Normal cornbelters team
 # Convert Date to datetime
 # Player name corrections: {incorrect_name: correct_name}
 player_name_map = {
@@ -608,7 +642,6 @@ player_name_map = {
      "Zach O'donnell": "Zach O'Donnell",
 }
 
-df = df[df['Pitcher'] == 'Thomas Mickels']
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['Pitcher'] = df['Pitcher'].replace(player_name_map)
 
