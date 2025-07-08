@@ -3,25 +3,28 @@
 
 library(tidyverse)
 library(here)
+library(ggforce)
 
 
 
-
+  
 #-----------------------------TEST DATA---------------------------------------#
 
 
 
-kcl_files <- list.files("kclData/", pattern = "\\.csv$", full.names = T)
-kcl_data <- bind_rows(lapply(kcl_files, read_csv))
-here::i_am("Ump_Reports/ump_report.R")
-
-df <- read_csv(here("kclData", "6-12 BlueCaps@Merchants.csv"))
-
-
-
-
-
-
+# if (!here::here() %>% endsWith("/Kernelytics-Projects")) {
+#   here::i_am("Ump_Reports/ump_report_test.Rmd")
+# }
+# 
+# 
+# df <- read_csv(here("kclData", "6-12 BlueCaps@Merchants.csv"))
+# 
+# dfc <- classify(df)
+# 
+# split_calls <- splits(dfc)
+# 
+# 
+# accuracy_rings <- rings(dfc)
 
 
 
@@ -79,11 +82,20 @@ splits <- function(df){
   
   # In zone
   iz <- df %>%
-    filter(CorrectCall == "Strike")
+    filter(CorrectCall == "StrikeCalled")
   oz <- df %>%
-    filter(CorrectCall == "Ball")
+    filter(CorrectCall == "BallCalled")
   
-  return(list(lhp, rhp, lhb, rhb, home, away, iz, oz))
+  return(list(
+    lhp = lhp,
+    rhp = rhp,
+    lhb = lhb,
+    rhb = rhb,
+    home = home,
+    away = away,
+    iz = iz,
+    oz = oz
+    ))
 }
 
 
@@ -109,7 +121,6 @@ rings <- function(df){
   iz_correct <- sum(split_list$iz$Accuracy == "Correct")
   iz_total <- nrow(split_list$iz)
   iz_acc <- iz_correct / iz_total
-  print(iz_acc)
   iz_help <- tibble(
     category = c("Correct", "Incorrect"),
     value = c(iz_acc, 1 - iz_acc)
@@ -118,7 +129,7 @@ rings <- function(df){
   # Helper values - out of zone accuracy
   oz_correct <- sum(split_list$oz$Accuracy == "Correct")
   oz_total <- nrow(split_list$oz)
-  oz_acc <- oz_correct / oz_correct
+  oz_acc <- oz_correct / oz_total 
   
   oz_help <- tibble(
     category = c("Correct", "Incorrect"),
@@ -129,68 +140,131 @@ rings <- function(df){
   overall <- ggplot(overall_help, aes(x=2, y = value, fill = category)) + 
     geom_col(color = "white", width = 1) +
     coord_polar(theta = "y") +
-    xlim(0.5, 2.5) +
+    xlim(0, 3) +
     scale_fill_manual(values = c("Correct" = "green", "Incorrect" = "red")) +
-    theme_void()
+    theme_void() +
+    annotate("text",
+             x = 0, y = 0,
+             label = paste0(
+               " ",
+               round(accuracy * 100, 1),
+               "%\n",
+               correct,
+               "/",
+               total),
+               size = 4,
+               color = "black",
+               hjust = 0.5,
+               vjust = 0.5) +
+    theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    labs(title = "Overall Accuracy")
   
   iz <- ggplot(iz_help, aes(x=2, y = value, fill = category)) + 
     geom_col(color = "white", width = 1) +
     coord_polar(theta = "y") +
-    xlim(0.5, 2.5) +
+    xlim(0, 3) +
     scale_fill_manual(values = c("Correct" = "green", "Incorrect" = "red")) +
-    theme_void()
+    theme_void() + 
+    annotate("text",
+             x = 0, y = 0,
+             label = paste0(
+               " ",
+               round(iz_acc * 100, 1),
+               "%\n",
+               iz_correct,
+               "/",
+               iz_total),
+             size = 4,
+             color = "black",
+             hjust = 0.5,
+             vjust = 0.5) +
+    theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) + 
+    labs(title = "In Zone Accuracy")
   
   oz <- ggplot(oz_help, aes(x=2, y = value, fill = category)) + 
     geom_col(color = "white", width = 1) +
     coord_polar(theta = "y") +
-    xlim(0.5, 2.5) +
+    xlim(0, 3) +
     scale_fill_manual(values = c("Correct" = "green", "Incorrect" = "red")) +
-    theme_void()
+    theme_void() +
+    annotate("text",
+             x = 0, y = 0,
+             label = paste0(
+               " ",
+               round(oz_acc * 100, 1),
+               "%\n",
+               oz_correct,
+               "/",
+               oz_total),
+             size = 4,
+             color = "black",
+             hjust = 0.5,
+             vjust = 0.5) +
+    theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) + 
+    labs(title = "Out of Zone Accuracy")
   
-  return(list(overall, iz, oz))
+  return(list(overall = overall,
+              iz = iz,
+              oz = oz
+              ))
 }
 
 
-# 
+#---------------------------- STRIKE ZONE GRAPHICS-----------------------------#
+
+zones <- function(incorrect_balls, incorrect_strikes){
+  
+  oz_plot <- ggplot(incorrect_balls, aes(x=PlateLocSide, y = PlateLocHeight,
+                                      color = "red")) +
+    geom_point(alpha = 0.7, size= 4
+    ) +
+    coord_fixed() +
+    scale_x_continuous(limits = c(-3,3)) +
+    scale_y_continuous(limits = c(1,4)) + 
+    labs(
+      title = "Incorrect Ball Calls",
+      x = "Horizontal Pitch Location (ft)",
+      y = "Vertical Plate Location (ft)",
+      color = "Call Accuracy"
+    ) +
+    theme_void() +
+    theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    geom_rect(aes(xmin = -1, xmax = 1, ymin = 1.5, ymax = 3.5),
+              color = "black", fill = NA, linetype = "dashed")
+  
+  iz_plot <- ggplot(incorrect_strikes, aes(x=PlateLocSide, y = PlateLocHeight,
+                                        color = "red")) +
+    geom_point(alpha = 0.7, size= 4
+    ) +
+    coord_fixed() + 
+    scale_x_continuous(limits = c(-3,3)) +
+    scale_y_continuous(limits = c(1,4)) + 
+    labs(
+      title = "Incorrect Strike Calls",
+      x = "Horizontal Pitch Location (ft)",
+      y = "Vertical Plate Location (ft)",
+      color = "Call Accuracy"
+    ) +
+    theme_void() +
+    theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    geom_rect(aes(xmin = -1, xmax = 1, ymin = 1.5, ymax = 3.5),
+              color = "black", fill = NA, linetype = "dashed")
+  
+  return(list(oz_plot = oz_plot,
+              iz_plot = iz_plot)
+         )
+  
+}
+
+
 # missed_balls <- game %>%
 #   filter(PitchCall == 'BallCalled', CorrectCall == "Strike")
 # 
-# ggplot(missed_balls, aes(x=PlateLocSide, y = PlateLocHeight, color = CorrectCall)) +
-#   geom_point(alpha = 0.7, size= 4
-#   ) +
-#   coord_fixed() +
-#   labs(
-#     title = "06/01 Called Balls",
-#     x = "Horizontal Pitch Location (ft)",
-#     y = "Vertical Plate Location (ft)",
-#     color = "Call Accuracy"
-#   ) + 
-#   scale_color_manual(
-#     values = c("Strike" = "red", "Ball" = "green")
-#   )+
-#   theme_minimal() +
-#   geom_rect(aes(xmin = -1, xmax = 1, ymin = 1.5, ymax = 3.5),
-#             color = "black", fill = NA, linetype = "dashed")
+# 
 # 
 # 
 # missed_strikes <- game %>%
 #   filter(PitchCall == "StrikeCalled", CorrectCall == "Ball")
-# 
-# 
-# 
-# ggplot(missed_balls, aes(x=PlateLocSide, y = PlateLocHeight, color = CorrectCall)) +
-#   geom_point(alpha = 0.7, size= 4
-#   ) +
-#   coord_fixed() +
-#   labs(
-#     title = "06/01 Called Balls",
-#     x = "Horizontal Pitch Location (ft)",
-#     y = "Vertical Plate Location (ft)",
-#     color = "Call Accuracy"
-#   ) + 
-#   scale_color_manual(
-#     values = c("Strike" = "red", "Ball" = "green")
-#   )+
-#   theme_minimal() +
-#   geom_rect(aes(xmin = -1, xmax = 1, ymin = 1.5, ymax = 3.5),
-#             color = "black", fill = NA, linetype = "dashed")
+
+
+

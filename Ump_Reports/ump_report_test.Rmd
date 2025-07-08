@@ -1,33 +1,34 @@
 ---
-title: "Umpire Report Test"
-author: "Cameron Cischke"
-date: "`r Sys.Date()`"
-output: html_document
+output: pdf_document
 ---
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 library(here)
 library(tidyverse)
 library(patchwork)
+
+
 here::i_am("Ump_Reports/ump_report_test.Rmd")
-source("ump_report.R")
+source(here("Ump_Reports", "ump_report.R"))
+
 
 ```
 
-# Umpire Overview
+<h1 style="text-align:center;">Umpire Report: 
 
+<h2 style="text-align:center;">Umpire Accuracy Overview</h2>
 ```{r data import/cleaning, include=FALSE}
 df <- read_csv(here("kclData", "6-12 BlueCaps@Merchants.csv"))
 calls <- classify(df)
 split_calls <- splits(calls)
-print(calls$CorrectCall)
 
 ```
 
 
-```{r accuracy plot, echo = FALSE}
+```{r accuracy plot, echo = FALSE, fig.align = 'center'}
 plots <- rings(calls)
-plots$overall + plots$iz + plots$oz
+accuracy_plots <- plots$overall + plots$iz + plots$oz
+accuracy_plots
 ```

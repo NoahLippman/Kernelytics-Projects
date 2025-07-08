@@ -1,0 +1,75 @@
+---
+output: 
+  pdf_document:
+    keep_tex: true
+header-includes:
+  - \usepackage{float}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(tidyverse)
+library(patchwork)
+
+
+here::i_am("Ump_Reports/ump_report_test.Rmd")
+source(here("Ump_Reports", "ump_report.R"))
+
+
+```
+
+
+\begin{center}
+    \Huge \textbf{Umpire Report}
+\end{center}
+
+\begin{center}
+  \LARGE \textbf{Aviators @ CornBelters 07/07}
+\end{center}
+
+\vspace{3em}
+
+\begin{center}
+  \LARGE \textbf{Accuracy Overview}
+\end{center}
+
+
+
+```{r data import/cleaning, include=FALSE}
+df <- read_csv(here("CornBeltersData", "test-07_07_2025 6_32_42 PM-Lafayette Aviators 2025@Normal Cornbelters.csv"))
+
+calls <- classify(df)
+split_calls <- splits(calls)
+
+```
+
+
+```{r accuracy plot, echo = FALSE, fig.pos ='H'}
+plots <- rings(calls)
+accuracy_plots <- plots$overall + plots$iz + plots$oz
+accuracy_plots
+```
+
+\newpage
+
+\begin{center}
+  \LARGE \textbf{Zone Plots}
+\end{center}
+
+```{r zone plot, echo = FALSE, fig.pos ='H'}
+incorrect_balls <- split_calls$iz %>%
+   filter(PitchCall == 'BallCalled')
+incorrect_strikes <- split_calls$oz %>%
+  filter(PitchCall == "StrikeCalled")
+
+zone_plots <- zones(incorrect_balls, incorrect_strikes)
+
+final_plot <- zone_plots$oz_plot + zone_plots$iz_plot +
+  plot_annotation(theme = theme(plot.margin = margin(0, 0, 0, 0)))
+
+final_plot
+```
+
+
