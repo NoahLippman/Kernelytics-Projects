@@ -4,6 +4,12 @@ output:
     keep_tex: true
 header-includes:
   - \usepackage{float}
+params:
+  game_data: "7_2 GroundSloths @ BlueCaps.csv"
+  home_team: "Bluecaps"
+  away_team: "Groundsloths"
+  game_date: "07/02"
+  league: "KCL"
 ---
 
 
@@ -26,19 +32,22 @@ source(here("Ump_Reports", "ump_report.R"))
 \end{center}
 
 \begin{center}
-  \LARGE \textbf{Aviators @ CornBelters 07/07}
+    \LARGE \textbf{`r params$home_team` @ `r params$away_team`}
 \end{center}
-
-\vspace{3em}
 
 \begin{center}
-  \LARGE \textbf{Accuracy Overview}
+    \Large `r params$game_date`
 \end{center}
+
 
 
 
 ```{r data import/cleaning, include=FALSE}
-df <- read_csv(here("CornBeltersData", "test-07_07_2025 6_32_42 PM-Lafayette Aviators 2025@Normal Cornbelters.csv"))
+
+ifelse(params$league == "KCL", df <- read_csv(here("kclData", params$game_data)),
+       df <- read_csv(here("CornBeltersData", params$game_data)))
+
+#df <- read_csv(here("kclData", params$game_data))
 
 calls <- classify(df)
 split_calls <- splits(calls)
