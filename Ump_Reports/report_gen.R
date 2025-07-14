@@ -2,11 +2,11 @@
 
 # CHANGE THESE VALUES
 
-file = "5-31-2025_BlueCaps_at_Merchants_SQUEAKYCLEAN.csv"
+file = "07_05_2025 6_59_20 PM-KCL BlueCaps 2025@KCL Merchants 2025_CLEAN.csv"
 home = "Merchants"
 away = "Bluecaps"
-month = "05"
-day = "31"
+month = "07"
+day = "05"
 league = "KCL"
 
 
@@ -22,6 +22,6 @@ rmarkdown::render(
     league = league
   ),
   output_file = paste0(
-    "output/", home, "_vs_", away, "_", month, "_", day, "_Report.pdf"
+    "output/",  month, "_", day, "_", home, "_vs_", away, "_Report.pdf"
   )
 )
