@@ -2,11 +2,11 @@
 
 # CHANGE THESE VALUES
 
-file = "07_05_2025 6_59_20 PM-KCL BlueCaps 2025@KCL Merchants 2025_CLEAN.csv"
+file = "TEST-07_13_2025 7_21_43 PM-KCL BlueCaps 2025@KCL Merchants 2025.csv"
 home = "Merchants"
 away = "Bluecaps"
 month = "07"
-day = "05"
+day = "13"
 league = "KCL"
 
 
