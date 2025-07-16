@@ -129,7 +129,7 @@ colnames(hr) <- c("Name", "Team", "Home Runs")
 write.csv(hr, "hr_leaders.csv", row.names = FALSE)
 
 
-avg <- get_leaderboard_desc(filter(full_stats, pa > 5), avg)
+avg <- get_leaderboard_desc(filter(full_stats, pa > 10), avg)
 avg$avg <- sprintf("%.3f", avg$avg)
 avg$avg <- sub("^0", "", avg$avg)
 colnames(avg) <- c("Name", "Team", "Batting Average")
@@ -148,7 +148,7 @@ sb <- get_leaderboard_desc(full_stats, sb)
 colnames(sb) <- c("Name", "Team", "Stolen Bases")
 write.csv(sb, "sb_leaders.csv", row.names = FALSE)
 
-ops <- get_leaderboard_desc(full_stats, ops)
+ops <- get_leaderboard_desc(filter(full_stats, pa > 10), ops)
 ops$ops <- sprintf("%.3f", ops$ops)
 colnames(ops) <- c("Name", "Team", "On-Base Plus Slugging")
 write.csv(ops, "ops_leaders.csv", row.names = FALSE)
@@ -157,7 +157,7 @@ write.csv(ops, "ops_leaders.csv", row.names = FALSE)
 
 # Create csvs for the pitching leaderboards
 
-era <- get_leaderboard_asc(filter(full_stats, ip > 3), era)
+era <- get_leaderboard_asc(filter(full_stats, ip > 5), era)
 era$era <- sprintf("%.2f", era$era)
 colnames(era) <- c("Name", "Team", "ERA")
 write.csv(era, "era_leaders.csv", row.names = FALSE)
