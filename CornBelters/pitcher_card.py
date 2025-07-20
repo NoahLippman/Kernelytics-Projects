@@ -619,13 +619,13 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_footer.text(1, 1, 'Data: Yakkertech', ha='right', va='top', fontsize=24)
 
     plt.tight_layout()
-    filename = f"./Cornbelters/Cards/2025/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
+    filename = f"./Cornbelters/Cards/7-10/{pitcher_name.replace(' ', '')}_pitching_dashboard.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
 # Main script with updated for loop
-data_path = 'Cornbelters/Data/2025.csv'
+data_path = 'Cornbelters/Data/7-10.csv'
 stats = ['IP', 'P', 'R', 'H', 'BB', 'K']  # Updated stats for box score
 season = 2025
 # Define dtypes for reading CSV
@@ -635,17 +635,15 @@ except ValueError as e:
     print(f"Error reading CSV with specified dtypes: {e}")
     print("Falling back to low_memory=False")
     df = pd.read_csv(data_path, low_memory=False)
-df = df[df['PitcherTeam'] == 'Normal cornbelters']  # Filter for Normal cornbelters team
 # Convert Date to datetime
 # Player name corrections: {incorrect_name: correct_name}
 player_name_map = {
     # "Incorrect Name": "Correct Name",
      "Zach O'donnell": "Zach O'Donnell",
 }
-df = df[df['Pitcher'] =='Graham Kasey']
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['Pitcher'] = df['Pitcher'].replace(player_name_map)
-
+df = df[df['Pitcher'] =='Blaine Mcrae']
 # Extract unique pitchers and their most recent team
 pitcher_teams = (df.sort_values('Date', ascending=False)
                  .groupby('Pitcher')
