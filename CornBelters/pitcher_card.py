@@ -635,7 +635,6 @@ except ValueError as e:
     print(f"Error reading CSV with specified dtypes: {e}")
     print("Falling back to low_memory=False")
     df = pd.read_csv(data_path, low_memory=False)
-df = df[df['PitcherTeam'] == 'Normal cornbelters']  # Filter for Normal cornbelters team
 # Convert Date to datetime
 # Player name corrections: {incorrect_name: correct_name}
 player_name_map = {
@@ -644,7 +643,7 @@ player_name_map = {
 }
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['Pitcher'] = df['Pitcher'].replace(player_name_map)
-
+df = df[df['Pitcher'] =='Blaine Mcrae']
 # Extract unique pitchers and their most recent team
 pitcher_teams = (df.sort_values('Date', ascending=False)
                  .groupby('Pitcher')
