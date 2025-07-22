@@ -60,4 +60,41 @@ catchProbChart <- function(Position, X_Cord, Y_Cord, hangTime, outOrHit){
   return(p)
 }
 
-catchProbChart(8,-20,250,3,"Hit")
+# -----------------------------
+# Shiny Module UI/Server
+# -----------------------------
+catchProbUI <- function(id) {
+  ns <- NS(id)
+  div(
+    style = "
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      background: #f9f9f9;
+      padding: 1px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    ",
+    # the plot itself
+    div(
+      style = "flex: 1 1 auto; min-width: 0;",
+      plotOutput(ns("CatchProb_Chart"), height = "500px")
+    )
+  )
+}
+catchProbServer <- function(id, Position, X_Cord, Y_Cord, hangTime, outOrHit) {
+  moduleServer(id, function(input, output, session) {
+    output$CatchProb_Chart <- renderPlot({
+      
+      req(Position)
+      req(X_Cord)
+      req(Y_Cord)
+      req(hangTime)
+      req(outOrHit)
+      
+      catchProbChart(Position(), X_Cord(), Y_Cord(), hangTime(), outOrHit())
+    })
+  })
+}
+
+

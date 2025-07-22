@@ -27,6 +27,7 @@ simdata <- simdata %>%
   filter(between(catchProb, .05,.8))
 
 playsResponsibleMap <- function(player_name){
+  
   individualData <- playsData %>%
     filter(Player == player_name) %>%
     filter(playScore != 0)
@@ -51,7 +52,8 @@ playsResponsibleMap <- function(player_name){
 
   return(p)
 } 
-playsResponsibleMap("Kaileb Hackman")
+
+
 # -----------------------------
 # Shiny Module UI/Server
 # -----------------------------
@@ -70,13 +72,13 @@ playsResponsibleUI <- function(id) {
     # the plot itself
     div(
       style = "flex: 1 1 auto; min-width: 0;",
-      plotOutput(ns("CatchProb_Chart"), height = "500px")
+      plotOutput(ns("playsResponsible_Chart"), click = "plot_click", height = "500px")
     )
   )
 }
 playsResponsibleServer <- function(id, player_name) {
   moduleServer(id, function(input, output, session) {
-    output$CatchProb_Chart <- renderPlot({
+    output$playsResponsible_Chart <- renderPlot({
 
       req(player_name())
 
