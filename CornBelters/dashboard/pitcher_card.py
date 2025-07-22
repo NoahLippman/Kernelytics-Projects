@@ -535,6 +535,7 @@ def pitching_dashboard(df: pd.DataFrame, stats: list, pitcher_name: str, team: s
     ax_left = fig.add_subplot(gs[:, 0])
     ax_right = fig.add_subplot(gs[:, -1])
 
+
     # Set header based on date
     header_date = "All Dates" if date == "ALL" else f"{date}/2025"
     ax_header.text(0.5, 0.5, f"{pitcher_name} - {team} - {header_date}",
