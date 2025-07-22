@@ -10,7 +10,7 @@ playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/
   mutate(distanceFromAverageStart = sqrt((startingX - X_Cord)^2 + (startingY - Y_Cord)^2)) %>%
   mutate(outOrHit = if_else(PlayResult %in% c("Out", "Sacrifice"), "Out","Hit"))
   
-customColors = c("Hit" = "darkgray", "Out" = "darkorange")
+customColors = c("Hit" = "black", "Out" = "darkorange")
 
 # Train Distance / HangTime Catch Probability Model
 modelData <- playsData %>% 
@@ -51,7 +51,7 @@ playsResponsibleMap <- function(player_name){
 
   return(p)
 } 
-
+playsResponsibleMap("Kaileb Hackman")
 # -----------------------------
 # Shiny Module UI/Server
 # -----------------------------
