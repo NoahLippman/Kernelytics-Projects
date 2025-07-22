@@ -5,7 +5,7 @@ startingPositions <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-P
   mutate(startingY = yCord) %>%
   select(Position, startingX, startingY)
 
-playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/playerScores.csv") %>%
+playsDataSprayChart <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/playerScores.csv") %>%
   left_join(startingPositions, by = c("playerPosition" = "Position")) %>%
   mutate(distanceFromAverageStart = sqrt((startingX - X_Cord)^2 + (startingY - Y_Cord)^2)) %>%
   mutate(outOrHit = if_else(PlayResult %in% c("Out", "Sacrifice"), "Out","Hit"))
@@ -14,7 +14,7 @@ customColors = c("Hit" = "darkgray", "Out" = "darkorange")
 
 defenseSprayChart <- function(player_name, position, hang_time_lower, hang_time_upper){
   
-  individualData <- playsData %>%
+  individualData <- playsDataSprayChart %>%
     filter(Player == player_name) %>%
     filter(playScore > 0 | playScore < -.01) %>%
     filter(playerPosition %in% position) %>%

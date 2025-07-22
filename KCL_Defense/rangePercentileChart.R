@@ -15,7 +15,7 @@ playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/
   mutate(backLeftVal = if_else(X_Cord < startingX & Y_Cord > startingY, playScore, NA)) %>%
   mutate(backRightVal = if_else(X_Cord > startingX & Y_Cord > startingY, playScore, NA))
 
-directional_leaderboard <- playsData %>%
+directional_leaderboard_range <- playsData %>%
   filter(playScore != 0 & !(is.na(playScore))) %>%
   select(Player, inRightVal, inLeftVal, backRightVal, backLeftVal) %>%
   group_by(Player) %>%
@@ -28,32 +28,20 @@ directional_leaderboard <- playsData %>%
   mutate(leftTotal = inLeftOAA + backLeftOAA) %>%
   mutate(rightTotal = inRightOAA + backRightOAA)
 
-directional_leaderboard <- directional_leaderboard %>%
+directional_leaderboard_range <- directional_leaderboard_range %>%
   rowwise() %>%
-  mutate(inRightPercentile = round(sum(directional_leaderboard$inRightOAA < inRightOAA) / length(directional_leaderboard$inRightOAA),2)) %>%
-  mutate(inLeftPercentile = round(sum(directional_leaderboard$inLeftOAA < inLeftOAA) / length(directional_leaderboard$inLeftOAA),2)) %>%
-  mutate(backLeftPercentile = round(sum(directional_leaderboard$backLeftOAA < backLeftOAA) / length(directional_leaderboard$backLeftOAA),2)) %>%
-  mutate(backRightPercentile = round(sum(directional_leaderboard$backRightOAA < backRightOAA) / length(directional_leaderboard$backRightOAA),2)) %>%
-  mutate(inPercentile = round(sum(directional_leaderboard$inTotal < inTotal) / length(directional_leaderboard$inTotal),2)) %>%
-  mutate(backPercentile = round(sum(directional_leaderboard$backTotal < backTotal) / length(directional_leaderboard$backTotal),2)) %>%
-  mutate(leftPercentile = round(sum(directional_leaderboard$leftTotal < leftTotal) / length(directional_leaderboard$leftTotal),2)) %>%
-  mutate(rightPercentile = round(sum(directional_leaderboard$rightTotal < rightTotal) / length(directional_leaderboard$rightTotal),2)) %>%
+  mutate(inRightPercentile = round(sum(directional_leaderboard_range$inRightOAA < inRightOAA) / length(directional_leaderboard_range$inRightOAA),2)) %>%
+  mutate(inLeftPercentile = round(sum(directional_leaderboard_range$inLeftOAA < inLeftOAA) / length(directional_leaderboard_range$inLeftOAA),2)) %>%
+  mutate(backLeftPercentile = round(sum(directional_leaderboard_range$backLeftOAA < backLeftOAA) / length(directional_leaderboard_range$backLeftOAA),2)) %>%
+  mutate(backRightPercentile = round(sum(directional_leaderboard_range$backRightOAA < backRightOAA) / length(directional_leaderboard_range$backRightOAA),2)) %>%
+  mutate(inPercentile = round(sum(directional_leaderboard_range$inTotal < inTotal) / length(directional_leaderboard_range$inTotal),2)) %>%
+  mutate(backPercentile = round(sum(directional_leaderboard_range$backTotal < backTotal) / length(directional_leaderboard_range$backTotal),2)) %>%
+  mutate(leftPercentile = round(sum(directional_leaderboard_range$leftTotal < leftTotal) / length(directional_leaderboard_range$leftTotal),2)) %>%
+  mutate(rightPercentile = round(sum(directional_leaderboard_range$rightTotal < rightTotal) / length(directional_leaderboard_range$rightTotal),2)) %>%
   ungroup()
 
-total_leaderboard <- playsData %>%
-  filter(playScore != 0 & !(is.na(playScore))) %>%
-  select(Player, playScore) %>%
-  group_by(Player) %>%
-  summarise(OAA = sum(playScore))
-
-total_leaderboard <- total_leaderboard %>%
-  rowwise() %>%
-  mutate(percentile = round(sum(total_leaderboard$OAA < OAA) / length(total_leaderboard$OAA),2)) %>%
-  ungroup() %>%
-  full_join(., directional_leaderboard, by = join_by(Player))
-
 rangePercentileChart <- function(player_name){
-  individualData <- directional_leaderboard %>%
+  individualData <- directional_leaderboard_range %>%
     filter(Player == player_name)
   
   p <- plot_ly(

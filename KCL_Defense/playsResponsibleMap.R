@@ -5,7 +5,7 @@ startingPositions <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-P
   mutate(startingY = yCord) %>%
   select(Position, startingX, startingY)
 
-playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/playerScores.csv") %>%
+playsData_playsResponsible <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/playerScores.csv") %>%
   left_join(startingPositions, by = c("playerPosition" = "Position")) %>%
   mutate(distanceFromAverageStart = sqrt((startingX - X_Cord)^2 + (startingY - Y_Cord)^2)) %>%
   mutate(outOrHit = if_else(PlayResult %in% c("Out", "Sacrifice"), "Out","Hit"))
@@ -13,7 +13,7 @@ playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/
 customColors = c("Hit" = "black", "Out" = "darkorange")
 
 # Train Distance / HangTime Catch Probability Model
-modelData <- playsData %>% 
+modelData <- playsData_playsResponsible %>% 
   filter(playScore != 0) %>%
   mutate(isCatch = if_else(outOrHit == "Out", 1, 0))
 
@@ -28,7 +28,7 @@ simdata <- simdata %>%
 
 playsResponsibleMap <- function(player_name){
   
-  individualData <- playsData %>%
+  individualData <- playsData_playsResponsible %>%
     filter(Player == player_name) %>%
     filter(playScore != 0)
   

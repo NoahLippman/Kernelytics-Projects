@@ -6,7 +6,7 @@ startingPositions <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-P
   mutate(startingY = yCord) %>%
   select(Position, startingX, startingY)
 
-playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/playerScores.csv") %>%
+playsDataOAA <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/playerScores.csv") %>%
   left_join(startingPositions, by = c("playerPosition" = "Position")) %>%
   mutate(distanceFromAverageStart = sqrt((startingX - X_Cord)^2 + (startingY - Y_Cord)^2)) %>%
   mutate(outOrHit = if_else(PlayResult %in% c("Out", "Sacrifice"), "Out","Hit")) %>%
@@ -15,7 +15,7 @@ playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/
   mutate(backLeftVal = if_else(X_Cord < startingX & Y_Cord > startingY, playScore, NA)) %>%
   mutate(backRightVal = if_else(X_Cord > startingX & Y_Cord > startingY, playScore, NA))
 
-directional_leaderboard <- playsData %>%
+directional_leadearboard_OAA <- playsDataOAA %>%
   filter(playScore != 0 & !(is.na(playScore))) %>%
   select(Player, inRightVal, inLeftVal, backRightVal, backLeftVal) %>%
   group_by(Player) %>%
@@ -28,12 +28,12 @@ directional_leaderboard <- playsData %>%
   mutate(leftTotal = inLeftOAA + backLeftOAA) %>%
   mutate(rightTotal = inRightOAA + backRightOAA)
 
-totals_only_leaderboard <- playsData %>%
+totals_only_leaderboard <- playsDataOAA %>%
   filter(playScore != 0 & !(is.na(playScore))) %>%
   select(Player, playScore) %>%
   group_by(Player) %>%
   summarise(OAA = round(sum(playScore),2)) %>%
-  full_join(., directional_leaderboard, by = join_by(Player))
+  full_join(., directional_leadearboard_OAA, by = join_by(Player))
 
 
 

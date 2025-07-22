@@ -92,7 +92,7 @@ catchProbServer <- function(id, Position, X_Cord, Y_Cord, hangTime, outOrHit) {
       req(hangTime)
       req(outOrHit)
       
-      catchProbChart(Position(), X_Cord(), Y_Cord(), hangTime(), outOrHit())
+      catchProbChart(Position, X_Cord, Y_Cord, hangTime, outOrHit)
     })
   })
 }
