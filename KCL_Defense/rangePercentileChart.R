@@ -102,13 +102,13 @@ rangePercentileChartUI <- function(id) {
       gap: 10px;
       background: #f9f9f9;
       padding: 1px;
-      border: 1px solid #ccc;
+      border: 2px solid #ccc;
       border-radius: 8px;
     ",
     # the plot itself
     div(
       style = "flex: 1 1 auto; min-width: 0;",
-      plotlyOutput(ns("rangePercentile_Chart"), height = "400px")
+      plotlyOutput(ns("rangePercentile_Chart"), height = "500px")
     )
   )
 }

@@ -38,7 +38,9 @@ totals_only_leaderboard <- playsData %>%
 
 
 oAATable <- function(player_name){
-  return(totals_only_leaderboard %>% filter(Player == player_name))
+  return(totals_only_leaderboard %>% 
+           filter(Player == player_name) %>%
+           select(Player, OAA, inTotal, backTotal, leftTotal, rightTotal, inRightOAA,	inLeftOAA,	backRightOAA,	backLeftOAA))
 }
 
 
@@ -59,7 +61,7 @@ oAATableUI <- function(id) {
       overflow-y: auto;
       overflow-x: scroll;
       background-color: white;
-      height: 400px;
+      height: 100px;
     ",
     # the plot itself
     div(

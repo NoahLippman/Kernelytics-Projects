@@ -51,7 +51,7 @@ playsResponsibleMap <- function(player_name){
 
   return(p)
 } 
-playsResponsibleMap("Cody Delfavero")
+
 # -----------------------------
 # Shiny Module UI/Server
 # -----------------------------
@@ -64,13 +64,13 @@ playsResponsibleUI <- function(id) {
       gap: 10px;
       background: #f9f9f9;
       padding: 1px;
-      border: 1px solid #ccc;
+      border: 2px solid #ccc;
       border-radius: 8px;
     ",
     # the plot itself
     div(
       style = "flex: 1 1 auto; min-width: 0;",
-      plotOutput(ns("CatchProb_Chart"), height = "400px")
+      plotOutput(ns("CatchProb_Chart"), height = "500px")
     )
   )
 }

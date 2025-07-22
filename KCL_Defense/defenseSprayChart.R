@@ -28,9 +28,9 @@ defenseSprayChart <- function(player_name, position, hang_time_lower, hang_time_
     filter(x >= -106 & x <= 106)
   
   p <- ggplot(data = individualData, aes(x = X_Cord, y = Y_Cord, color = outOrHit)) + 
-    geom_point(size = 2) + 
+    geom_point(size = 3) + 
     geom_point(data = startingPositions %>% filter(Position == position), aes(x = startingX, y = startingY, color = "League Average Starting Position"),
-               shape = 17, size = 2, inherit.aes = FALSE) +
+               shape = 17, size = 3, inherit.aes = FALSE) +
     scale_color_manual(
       name = "Color", 
       values = c(customColors,
@@ -50,7 +50,7 @@ defenseSprayChart <- function(player_name, position, hang_time_lower, hang_time_
     labs(color = "") +
     theme(legend.position = c(.97,.05), 
           legend.justification = c(1,0),
-          legend.text = element_text(size = 10, face = "bold"),
+          legend.text = element_text(size = 12, face = "bold"),
           legend.title = element_blank())
 
   return(p)
@@ -69,13 +69,13 @@ defenseSprayChartUI <- function(id) {
       gap: 10px;
       background: #f9f9f9;
       padding: 1px;
-      border: 1px solid #ccc;
+      border: 2px solid #ccc;
       border-radius: 8px;
     ",
     # the plot itself
     div(
       style = "flex: 1 1 auto; min-width: 0;",
-      plotOutput(ns("defenseSpray_Chart"), height = "400px")
+      plotOutput(ns("defenseSpray_Chart"), height = "500px")
     )
   )
 }
