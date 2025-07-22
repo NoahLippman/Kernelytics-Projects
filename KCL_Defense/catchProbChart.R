@@ -35,7 +35,7 @@ catchProbChart <- function(Position, X_Cord, Y_Cord, hangTime, outOrHit){
   pointData <- data.frame('Position' = Position, 'X_Cord' = X_Cord, 'Y_Cord' = Y_Cord, 'outOrHit' = outOrHit)
   
   p <- ggplot(data = relevantData, aes(x = X_Cord, y = Y_Cord)) + 
-      stat_summary_hex(aes(z = outProb), fun = "mean", bins = 20, alpha = .3) + 
+      stat_summary_hex(aes(z = outProb), fun = "mean", bins = 20, alpha = .45) + 
       scale_fill_stepsn(
         colors = c("#f5f8ff", "#d6e0ff", "#a1b9ff", "#5580ff", "#0040ff"),
         values = scales::rescale(c(.05, 0.3, 0.5, 0.7, 0.9)),
