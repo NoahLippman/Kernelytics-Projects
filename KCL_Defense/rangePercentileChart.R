@@ -65,19 +65,24 @@ rangePercentileChart <- function(player_name){
               x = .5
             ),
             polar = list(
+              radialaxis = list(
+                range = c(0, 1),              
+                tickvals = round(seq(0,1,.2),1),  
+                ticktext = round(seq(0,1,.2),1)   
+              ),
               angularaxis = list(
                 rotation = 45,
                 direction = 'clockwise',
                 tickvals = seq(0,100),
                 tickText = c('Back Right', 'Right Total', 'In Right ', 'In Total', 'In Left', 'Left Total', 'Back Left','Back Total', 'Back Right')
-            )
+              )
           ),
           showlegend = F
           )
   
   return(p)
 }
-
+rangePercentileChart("Grayson Schnierle")
 # -----------------------------
 # Shiny Module UI/Server
 # -----------------------------

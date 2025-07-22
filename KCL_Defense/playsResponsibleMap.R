@@ -10,7 +10,7 @@ playsData_playsResponsible <- read.csv("/Users/noahlippman/Documents/GitHub/Kern
   mutate(distanceFromAverageStart = sqrt((startingX - X_Cord)^2 + (startingY - Y_Cord)^2)) %>%
   mutate(outOrHit = if_else(PlayResult %in% c("Out", "Sacrifice"), "Out","Hit"))
   
-customColors = c("Hit" = "black", "Out" = "darkorange")
+customColors = c("Hit" = "darkgray", "Out" = "darkorange")
 
 # Train Distance / HangTime Catch Probability Model
 modelData <- playsData_playsResponsible %>% 

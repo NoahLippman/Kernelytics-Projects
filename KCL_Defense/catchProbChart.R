@@ -22,7 +22,7 @@ y <- r * sin(theta)
 semicircle <- data.frame(x = x, y = y) %>%
   filter(x >= -106 & x <= 106)
 
-customColors = c("Hit" = "black", "Out" = "darkorange")
+customColors = c("Hit" = "darkgray", "Out" = "darkorange")
 
 catchProbChart <- function(Position, X_Cord, Y_Cord, hangTime, outOrHit){
   colName <- paste0("X", Position)
