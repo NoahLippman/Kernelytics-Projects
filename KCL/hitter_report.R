@@ -47,7 +47,7 @@ color_by_rank2 <- function(rank_vector, n_colors) {
 #"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
 #"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/Data/2025.csv"
 # Load data
-data_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/Data/report2.csv"
+data_path <- "GitHub/Kernelytics-Projects/KCL/Data/2025.csv"
 if (!file.exists(data_path)) {
   stop("Data file not found: ", data_path)
 }
@@ -65,7 +65,7 @@ message("Unique BatterTeam values: ", paste(unique(df$BatterTeam), collapse = ",
 # Filter data
 df <- df %>%
   filter(TaggedPitchType != "Undefined",
-         BatterTeam == "Kcl bluecaps 2025")
+         BatterTeam == "Kcl bobcats 2025")
 #BatterTeam == "Kcl merchants 2025",
 # Debug: Check if data remains after filtering
 if (nrow(df) == 0) {
@@ -182,10 +182,10 @@ custom_theme <- ttheme_default(
 )
 
 #"C:/Users/maxim/Desktop/Kernelytics-Projects/CornBelters/reports/hitter_report.pdf"
-#"C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/bobcats.pdf"
+#".pdf"
 # Define PDF output path
 # Define PDF output path
-pdf_path <- "C:/Users/isu_mvquirk_admin/Documents/GitHub/Kernelytics-Projects/KCL/hitter_reports/bluecaps6-30hitter.pdf"
+pdf_path <- "GitHub/Kernelytics-Projects/KCL/hitter_reports/driscoll.pdf"
 
 # Open PDF device with landscape dimensions
 pdf(file = pdf_path, width = 11, height = 8.5)

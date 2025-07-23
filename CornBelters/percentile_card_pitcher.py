@@ -347,7 +347,7 @@ pitchers = df['Pitcher'].dropna().unique()
 
 for pitcher_name in pitchers:
     try:
-        plot_pitcher_percentiles(df, pitcher_name)
+        plot_pitcher_percentiles(df, "Nicholas Currie")
         print(f"Percentile card generated for {pitcher_name}")
     except Exception as e:
         print(f"Error generating percentile card for {pitcher_name}: {e}")
