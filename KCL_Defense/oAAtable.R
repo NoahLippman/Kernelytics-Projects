@@ -1,6 +1,7 @@
 library(tidyverse)
 library(plotly)
-
+ 
+## Load Data ##
 startingPositions <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/startingPositions.csv") %>%
   mutate(startingX = xCord) %>%
   mutate(startingY = yCord) %>%
@@ -15,6 +16,7 @@ playsDataOAA <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projec
   mutate(backLeftVal = if_else(X_Cord < startingX & Y_Cord > startingY, playScore, NA)) %>%
   mutate(backRightVal = if_else(X_Cord > startingX & Y_Cord > startingY, playScore, NA))
 
+## Create a DataFrame of all players and their OAA in each Direction ##
 directional_leadearboard_OAA <- playsDataOAA %>%
   filter(playScore != 0 & !(is.na(playScore))) %>%
   select(Player, inRightVal, inLeftVal, backRightVal, backLeftVal) %>%
@@ -28,6 +30,7 @@ directional_leadearboard_OAA <- playsDataOAA %>%
   mutate(leftTotal = inLeftOAA + backLeftOAA) %>%
   mutate(rightTotal = inRightOAA + backRightOAA)
 
+## Create a DataFrame of Each player's total OAA ##
 totals_only_leaderboard <- playsDataOAA %>%
   filter(playScore != 0 & !(is.na(playScore))) %>%
   select(Player, playScore) %>%
@@ -36,7 +39,7 @@ totals_only_leaderboard <- playsDataOAA %>%
   full_join(., directional_leadearboard_OAA, by = join_by(Player))
 
 
-
+## Retrun a DataFrame of Total and Directional OAA ##
 oAATable <- function(player_name){
   return(totals_only_leaderboard %>% 
            filter(Player == player_name) %>%

@@ -1,6 +1,7 @@
 library(tidyverse)
 library(plotly)
 
+## Load Data ##
 startingPositions <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/startingPositions.csv") %>%
   mutate(startingX = xCord) %>%
   mutate(startingY = yCord) %>%
@@ -15,6 +16,7 @@ playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/
   mutate(backLeftVal = if_else(X_Cord < startingX & Y_Cord > startingY, playScore, NA)) %>%
   mutate(backRightVal = if_else(X_Cord > startingX & Y_Cord > startingY, playScore, NA))
 
+## Create a directional DataFrame ##
 directional_leaderboard_range <- playsData %>%
   filter(playScore != 0 & !(is.na(playScore))) %>%
   select(Player, inRightVal, inLeftVal, backRightVal, backLeftVal) %>%
@@ -28,6 +30,7 @@ directional_leaderboard_range <- playsData %>%
   mutate(leftTotal = inLeftOAA + backLeftOAA) %>%
   mutate(rightTotal = inRightOAA + backRightOAA)
 
+## Add Percentiles to Directional DataFrame
 directional_leaderboard_range <- directional_leaderboard_range %>%
   rowwise() %>%
   mutate(inRightPercentile = round(sum(directional_leaderboard_range$inRightOAA < inRightOAA) / length(directional_leaderboard_range$inRightOAA),2)) %>%
@@ -40,6 +43,7 @@ directional_leaderboard_range <- directional_leaderboard_range %>%
   mutate(rightPercentile = round(sum(directional_leaderboard_range$rightTotal < rightTotal) / length(directional_leaderboard_range$rightTotal),2)) %>%
   ungroup()
 
+## Function to Create a range Percentile Chart ##
 rangePercentileChart <- function(player_name){
   individualData <- directional_leaderboard_range %>%
     filter(Player == player_name)
@@ -82,7 +86,7 @@ rangePercentileChart <- function(player_name){
   
   return(p)
 }
-rangePercentileChart("Grayson Schnierle")
+
 # -----------------------------
 # Shiny Module UI/Server
 # -----------------------------
@@ -101,7 +105,7 @@ rangePercentileChartUI <- function(id) {
     # the plot itself
     div(
       style = "flex: 1 1 auto; min-width: 0;",
-      plotlyOutput(ns("rangePercentile_Chart"), height = "500px")
+      plotlyOutput(ns("rangePercentile_Chart"), height = "450px")
     )
   )
 }

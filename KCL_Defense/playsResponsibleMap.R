@@ -1,5 +1,6 @@
 library(tidyverse)
 
+## Load Data ##
 startingPositions <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/startingPositions.csv") %>%
   mutate(startingX = xCord) %>%
   mutate(startingY = yCord) %>%
@@ -12,13 +13,14 @@ playsData_playsResponsible <- read.csv("/Users/noahlippman/Documents/GitHub/Kern
   
 customColors = c("Hit" = "darkgray", "Out" = "darkorange")
 
-# Train Distance / HangTime Catch Probability Model
+## Train Distance / HangTime Catch Probability Model ##
 modelData <- playsData_playsResponsible %>% 
   filter(playScore != 0) %>%
   mutate(isCatch = if_else(outOrHit == "Out", 1, 0))
 
 catchProb_Model<- glm(isCatch ~ distanceFromAverageStart + HangTime, data = modelData, family = binomial)
 
+## Create Simulated Data With distance, hangtime and Catch Prob ##
 hangTimes <- c(seq(1,7,.1))
 distance <- c(0:200)
 simdata <- expand.grid('HangTime' = hangTimes, 'distanceFromAverageStart' = distance)
@@ -26,11 +28,12 @@ simdata <- simdata %>%
   mutate(catchProb = predict(catchProb_Model, ., type = 'response')) %>%
   filter(between(catchProb, .05,.8))
 
+## Catch Prob Chart Function ##
 playsResponsibleMap <- function(player_name){
   
   individualData <- playsData_playsResponsible %>%
     filter(Player == player_name) %>%
-    filter(playScore != 0)
+    filter(playScore >= .05 | playScore < -.05)
   
   p <- ggplot(data = individualData, aes(x = distanceFromAverageStart, y = HangTime)) + 
     geom_raster(data = simdata, aes(x = distanceFromAverageStart, y = HangTime, fill = catchProb), interpolate = FALSE, alpha = .5, inherit.aes = FALSE) +
@@ -72,7 +75,7 @@ playsResponsibleUI <- function(id) {
     # the plot itself
     div(
       style = "flex: 1 1 auto; min-width: 0;",
-      plotOutput(ns("playsResponsible_Chart"), click = "plot_click", height = "500px")
+      plotOutput(ns("playsResponsible_Chart"), click = "plot_click", height = "450px")
     )
   )
 }
