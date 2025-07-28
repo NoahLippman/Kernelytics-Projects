@@ -1,12 +1,15 @@
 library(shiny)
 library(tidyverse)
+tags$style("@import url(https://use.fontawesome.com/releases/v5.7.2/css/all.css);")
 
 ## R Files for plot outputs ##
-source("playsResponsibleMap.R")
-source("defenseSprayChart.R")
-source("rangePercentileChart.R")
-## Load Data ##
+source("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/playsResponsibleMap.R")
+source("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/defenseSprayChart.R")
+source("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/rangePercentileChart.R")
+source("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/oAAtable.R")
+source("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/catchProbChart.R")
 
+## Load Data ##
 startingPositions <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/startingPositions.csv") %>%
   mutate(startingX = xCord) %>%
   mutate(startingY = yCord) %>%
@@ -17,43 +20,60 @@ playsData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/
   mutate(distanceFromAverageStart = sqrt((startingX - X_Cord)^2 + (startingY - Y_Cord)^2)) %>%
   mutate(outOrHit = if_else(PlayResult %in% c("Out", "Sacrifice"), "Out","Hit"))
 
-## Load data ##
-
+## Position Options ##
 players <- unique(playsData$Player)
+numToPositionApp <- c('3' = "First Base", '4' = "Second Base", '5' = "Third Base", '6' = 'Short Stop', 
+                 '7' = 'Leftfield', '8' = 'Centerfield', '9' = 'Rightfield')
 
 ## UI ##
 ui <- fluidPage(
   
   # Player Selector #
   absolutePanel(
-    top = "3%", left = "2%", width = "300px",
+    top = "0%", left = "0%", width = "350px",
     wellPanel(
       selectInput(
         inputId = "selected_player",
         label = "Choose a player",
         choices = players,
-        selected = NULL
+        selected = "Adan Nieves"
       )
     )
   ),
-  div("Range Percentile Chart",
-      style = "position: absolute; left: 9.5%; top: 52%; font-weight: bold; font-size: 22px;"),
+  
+  div("Range Percentile Chart (Batter's View)",
+      style = "position: absolute; left: 11%; top: 13%; font-weight: bold; font-size: 22px;"),
+  div("OAA Total Values by Direction", 
+      style = "position: absolute; left: 14%; top: 70%; font-weight: bold; font-size: 22px"),
+  div("Defensive Spray Chart",
+      style = "position: absolute; left: 68%; top: 13%; font-weight: bold; font-size: 22px"),
+  div("Catch Probability by Hang Time and Distance From League Average Start", 
+      style = "position: absolute; left: 1%; top: 96%; font-weight: bold; font-size: 22px"),
+  div("Catch Probability Interactive Spray Chart", 
+      style = "position: absolute; left: 62%; top: 96%; font-weight: bold; font-size: 22px"), 
+  div("Click a Point on Left Graph", 
+      style = "position: absolute; left: 42.7%; top: 114%; font-weight: bold; font-size: 17px"),
+  
+  div(icon("arrow-right", class = "fa-6x"),
+      style = "position: absolute; left: 46.6%; top: 118%"),
+  div("h",
+      style = "position: absolute; top: 180%; font-size: 1px"),
   
   # OAA Dataframe #
   absolutePanel(
-    top = "17%", left = "2%", width = "30%",
+    top = "75%", left = "4%", width = "38%",
     oAATableUI("oAATable")
   ),
   
   # Range Percentile Chart #
   absolutePanel(
-    top = "57%", left = "2%", width = "30%",
+    top = "18%", left = "4%", width = "38%",
     rangePercentileChartUI("rangePercentileChart")
   ),
   
   # Position & Hang Time Selector #
   absolutePanel(
-    top = "57%", left = "63%", width = "20%", height = "300px",
+    top = "60%", left = "56%", width = "38%",
     wellPanel(
       sliderInput(
         inputId = "hang_times",
@@ -64,20 +84,26 @@ ui <- fluidPage(
       checkboxGroupInput(
         inputId = "position",
         label = "Choose a Position",
-        selected = 6,
-        choices = NULL
+        selected = "ShortStop",
+        choices = NULL,
+        inline = TRUE
       )
     )
   ),
   
   absolutePanel(
-    top = "17%", left = "33%", width = "30%",
+    top = "101%", left = "4%", width = "38%",
     playsResponsibleUI("playsResponsibleChart")
   ),
   
   absolutePanel(
-    top = "57%", left = "33%", width = "30%",
+    top = "18%", left = "56%", width = "38%",
     defenseSprayChartUI("defenseSprayChart")
+  ), 
+  
+  absolutePanel(
+    top = "101%", left = "56%", width = "38%", 
+    catchProbUI("catchProbChart")
   )
 )
 
@@ -95,8 +121,8 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(
       session,
       "position",
-      choices = unique((playsData %>% filter(Player == selected_player()))$playerPosition),
-      selected =  unique((playsData %>% filter(Player == selected_player()))$playerPosition)
+      choices = unname(numToPositionApp[unique(as.character((playsData %>% filter(Player == selected_player()))$playerPosition))]),
+      selected =  unname(numToPositionApp[unique(as.character((playsData %>% filter(Player == selected_player()))$playerPosition))])
     )
   })
   
@@ -114,6 +140,13 @@ server <- function(input, output, session) {
     req(input$hang_times)
     input$hang_times[2]
   })
+  
+  clicked_point <- reactive({nearPoints(playsData %>% filter(Player == selected_player() & HangTime != 0), 
+                              input$plot_click, 
+                              threshold = 10, 
+                              maxpoints = 1)
+  })
+  print(clicked_point)
   
   playsResponsibleServer(
     id = "playsResponsibleChart",
@@ -137,6 +170,17 @@ server <- function(input, output, session) {
     id = "rangePercentileChart",
     player_name = selected_player
   )
+  
+  observeEvent(clicked_point(), {
+    catchProbServer(
+      id = "catchProbChart", 
+      Position = clicked_point()$playerPosition, 
+      X_Cord = clicked_point()$X_Cord,
+      Y_Cord = clicked_point()$Y_Cord, 
+      hangTime = round(clicked_point()$HangTime,0), 
+      outOrHit = clicked_point()$outOrHit
+    )
+  })
   
   
 }
