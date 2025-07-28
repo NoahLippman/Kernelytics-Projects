@@ -30,7 +30,7 @@ ui <- fluidPage(
   
   # Player Selector #
   absolutePanel(
-    top = "0%", left = "0%", width = "350px",
+    top = "3.5%", left = "2%", width = "350px",
     wellPanel(
       selectInput(
         inputId = "selected_player",
@@ -41,39 +41,39 @@ ui <- fluidPage(
     )
   ),
   
-  div("Range Percentile Chart (Batter's View)",
-      style = "position: absolute; left: 11%; top: 13%; font-weight: bold; font-size: 22px;"),
+  div("Catch Probability chart by HangTime and Direction",
+      style = "position: absolute; left: 7.5%; top: 23%; font-weight: bold; font-size: 22px;"),
   div("OAA Total Values by Direction", 
-      style = "position: absolute; left: 14%; top: 70%; font-weight: bold; font-size: 22px"),
-  div("Defensive Spray Chart",
-      style = "position: absolute; left: 68%; top: 13%; font-weight: bold; font-size: 22px"),
-  div("Catch Probability by Hang Time and Distance From League Average Start", 
-      style = "position: absolute; left: 1%; top: 96%; font-weight: bold; font-size: 22px"),
-  div("Catch Probability Interactive Spray Chart", 
-      style = "position: absolute; left: 62%; top: 96%; font-weight: bold; font-size: 22px"), 
+      style = "position: absolute; left: 40%; top: 81%; font-weight: bold; font-size: 22px"),
+  div("Catch Probability Interactive Spray Chart",
+      style = "position: absolute; left: 62.5%; top: 23%; font-weight: bold; font-size: 22px"),
+  div("Range Percentile Chart (Batter's View)", 
+      style = "position: absolute; left: 11%; top: 121%; font-weight: bold; font-size: 22px"),
+  div("Defensive Spray Chart", 
+      style = "position: absolute; left: 69%; top: 121%; font-weight: bold; font-size: 22px"), 
   div("Click a Point on Left Graph", 
-      style = "position: absolute; left: 42.7%; top: 114%; font-weight: bold; font-size: 17px"),
+      style = "position: absolute; left: 42.7%; top: 43%; font-weight: bold; font-size: 17px"),
   
-  div(icon("arrow-right", class = "fa-6x"),
-      style = "position: absolute; left: 46.6%; top: 118%"),
+  div(icon("arrow-right", class = "fa-5x"),
+      style = "position: absolute; left: 47%; top: 46%"),
   div("h",
       style = "position: absolute; top: 180%; font-size: 1px"),
   
   # OAA Dataframe #
   absolutePanel(
-    top = "75%", left = "4%", width = "38%",
+    top = "85%", left = "20%", width = "57%",
     oAATableUI("oAATable")
   ),
   
   # Range Percentile Chart #
   absolutePanel(
-    top = "18%", left = "4%", width = "38%",
+    top = "126%", left = "4%", width = "38%",
     rangePercentileChartUI("rangePercentileChart")
   ),
   
   # Position & Hang Time Selector #
   absolutePanel(
-    top = "60%", left = "56%", width = "38%",
+    top = "168%", left = "56%", width = "38%",
     wellPanel(
       sliderInput(
         inputId = "hang_times",
@@ -92,17 +92,17 @@ ui <- fluidPage(
   ),
   
   absolutePanel(
-    top = "101%", left = "4%", width = "38%",
+    top = "28%", left = "4%", width = "38%",
     playsResponsibleUI("playsResponsibleChart")
   ),
   
   absolutePanel(
-    top = "18%", left = "56%", width = "38%",
+    top = "126%", left = "56%", width = "38%",
     defenseSprayChartUI("defenseSprayChart")
   ), 
   
   absolutePanel(
-    top = "101%", left = "56%", width = "38%", 
+    top = "28%", left = "56%", width = "38%", 
     catchProbUI("catchProbChart")
   )
 )
