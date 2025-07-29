@@ -58,10 +58,12 @@ ui <- fluidPage(
       style = "position: absolute; left: 47%; top: 46%"),
   div("h",
       style = "position: absolute; top: 180%; font-size: 1px"),
+  h2(" ", style = "border-top: 1.5px solid #000000; margin-top: 52.45%; margin-bottom: 0%; width: 39%; margin-left: 0%;"), 
+  h2(" ", style = "border-top: 1.5px solid #000000; margin-top: 0%; margin-bottom: 0%; margin-left: 59%;"), 
   
   # OAA Dataframe #
   absolutePanel(
-    top = "85%", left = "20%", width = "57%",
+    top = "86%", left = "17%", width = "65%",
     oAATableUI("oAATable")
   ),
   
@@ -177,7 +179,7 @@ server <- function(input, output, session) {
       Position = clicked_point()$playerPosition, 
       X_Cord = clicked_point()$X_Cord,
       Y_Cord = clicked_point()$Y_Cord, 
-      hangTime = round(clicked_point()$HangTime,0), 
+      hangTime = round(clicked_point()$HangTime * 2)/2, 
       outOrHit = clicked_point()$outOrHit
     )
   })

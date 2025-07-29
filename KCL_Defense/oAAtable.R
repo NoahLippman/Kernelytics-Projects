@@ -14,18 +14,19 @@ playsDataOAA <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projec
   mutate(inLeftVal = if_else(X_Cord < startingX & Y_Cord < startingY, playScore, NA)) %>%
   mutate(inRightVal = if_else(X_Cord > startingX & Y_Cord < startingY, playScore, NA)) %>%
   mutate(backLeftVal = if_else(X_Cord < startingX & Y_Cord > startingY, playScore, NA)) %>%
-  mutate(backRightVal = if_else(X_Cord > startingX & Y_Cord > startingY, playScore, NA))
-
+  mutate(backRightVal = if_else(X_Cord > startingX & Y_Cord > startingY, playScore, NA)) %>%
+  mutate(inningID = paste(Inning, "-", Date))
+  
 ## Num to Position Map ##
 numToPosition <- c('3' = "1B", '4' = "2B", '5' = "3B", '6' = 'SS', 
                    '7' = 'LF', '8' = 'CF', '9' = 'RF')
 
 ## Create a DataFrame of all players and their OAA in each Direction ##
 directional_leadearboard_OAA <- playsDataOAA %>%
-  filter(playScore != 0 & !(is.na(playScore))) %>%
-  select(Player, inRightVal, inLeftVal, backRightVal, backLeftVal) %>%
+  select(Player, inRightVal, inLeftVal, backRightVal, backLeftVal, inningID) %>%
   group_by(Player) %>%
-  summarise(inRightOAA = round(sum(inRightVal, na.rm = TRUE),2),
+  summarise(innings =  length(unique(inningID)),
+            inRightOAA = round(sum(inRightVal, na.rm = TRUE),2),
             inLeftOAA = round(sum(inLeftVal, na.rm = TRUE),2),
             backRightOAA = round(sum(backRightVal, na.rm = TRUE),2),
             backLeftOAA = round(sum(backLeftVal, na.rm = TRUE),2)) %>%
@@ -37,7 +38,7 @@ directional_leadearboard_OAA <- playsDataOAA %>%
 ## Create a DataFrame of Each player's total OAA ##
 totals_only_leaderboard <- playsDataOAA %>%
   filter(playScore != 0 & !(is.na(playScore))) %>%
-  select(Player, playerPosition, playScore) %>%
+  select(Player, playerPosition, playScore, inningID) %>%
   group_by(Player) %>%
   summarise(OAA = round(sum(playScore),2),
             playerPosition = "Total") %>%
@@ -45,10 +46,11 @@ totals_only_leaderboard <- playsDataOAA %>%
 
 ## Create a DataFrame of Each player's positional OAA ##
 position_leaderboard <- playsDataOAA %>%
-  select(Player, playScore, playerPosition, inRightVal, inLeftVal, backRightVal, backLeftVal) %>%
+  select(Player, playScore, playerPosition, inRightVal, inLeftVal, backRightVal, backLeftVal, inningID) %>%
   mutate(playerPosition = unname(numToPosition[as.character(playerPosition)])) %>%
   group_by(Player, playerPosition) %>% 
-  summarise(OAA = round(sum(playScore, na.rm = TRUE),2), 
+  summarise(innings =  length(unique(inningID)),
+            OAA = round(sum(playScore, na.rm = TRUE),2), 
             inRightOAA = round(sum(inRightVal, na.rm = TRUE),2),
             inLeftOAA = round(sum(inLeftVal, na.rm = TRUE),2),
             backRightOAA = round(sum(backRightVal, na.rm = TRUE),2),
@@ -58,13 +60,15 @@ position_leaderboard <- playsDataOAA %>%
   mutate(leftTotal = inLeftOAA + backLeftOAA) %>%
   mutate(rightTotal = inRightOAA + backRightOAA)
 
-full_leaderboard <- rbind(totals_only_leaderboard, position_leaderboard)
+full_leaderboard <- rbind(totals_only_leaderboard, position_leaderboard) %>%
+  mutate("OAA/175 innings" = (OAA/innings) * 175)
 
-## Retrun a DataFrame of Total and Directional OAA ##
+## Return a DataFrame of Total and Directional OAA ##
 oAATable <- function(player_name){
   return(full_leaderboard %>% 
            filter(Player == player_name) %>%
-           select(Player, "Position" = playerPosition,  OAA, inTotal, backTotal, leftTotal, rightTotal, inRightOAA,	inLeftOAA,	backRightOAA,	backLeftOAA))
+           select(Player, "Position" = playerPosition, innings, OAA, 'OAA/175 innings',  inTotal, backTotal, leftTotal, rightTotal, inRightOAA,	inLeftOAA,	backRightOAA,	backLeftOAA) %>%
+           arrange(desc(innings)))
 }
 
 

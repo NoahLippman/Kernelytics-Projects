@@ -7,7 +7,7 @@ startingPositions <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-P
   mutate(startingX = xCord) %>%
   mutate(startingY = yCord) %>%
   select(Position, startingX, startingY)
-
+ 
 simData <- read.csv("/Users/noahlippman/Documents/GitHub/Kernelytics-Projects/KCL_Defense/SimData.csv") %>%
   mutate(outProb = X3 + X4 + X5 + X6 + X7 + X8 + X9) %>%
       filter(
@@ -30,7 +30,7 @@ y <- r * sin(theta)
 semicircle <- data.frame(x = x, y = y) %>%
   filter(x >= -106 & x <= 106)
 
-customColors = c("Hit" = "darkgray", "Out" = "darkorange")
+customColorsCatchProb = c("Hit" = "#6a6a6a", "Out" = "darkorange")
 
 catchProbChart <- function(position, X_Cord, Y_Cord, hangTime, outOrHit){
   positionName <- unname(numToPosition[as.character(position)])
@@ -38,20 +38,22 @@ catchProbChart <- function(position, X_Cord, Y_Cord, hangTime, outOrHit){
   
   relevantData <- simData %>%
     filter(HangTime == hangTime) %>%
-    filter((.data[[colName]] >= .data[['X3']] & 
-           .data[[colName]] >= .data[['X4']] &
-           .data[[colName]] >= .data[['X5']] &
-           .data[[colName]] >= .data[['X6']] &
-           .data[[colName]] >= .data[['X7']] &
-           .data[[colName]] >= .data[['X8']] &
+    filter(outProb != 0) %>%
+    filter((.data[[colName]] >= .data[['X3']]& 
+           .data[[colName]] >= .data[['X4']]&
+           .data[[colName]] >= .data[['X5']]&
+           .data[[colName]] >= .data[['X6']]&
+           .data[[colName]] >= .data[['X7']]&
+           .data[[colName]] >= .data[['X8']]&
            .data[[colName]] >= .data[['X9']])) %>%
     mutate(catchProb = .data[[colName]]) %>%
-    select(X_Cord, Y_Cord, catchProb)
+    select(X_Cord, Y_Cord, outProb)
   
   pointData <- data.frame('Position' = position, 'X_Cord' = X_Cord, 'Y_Cord' = Y_Cord, 'outOrHit' = outOrHit)
   
   p <- ggplot(data = relevantData, aes(x = X_Cord, y = Y_Cord)) + 
-      stat_summary_hex(aes(z = catchProb), fun = "mean", bins = 30, alpha = .45) + 
+      ggtitle(paste("Catch Probability for balls with a ~ ", hangTime, "Hang Time")) + 
+      stat_summary_hex(aes(z = outProb), fun = "mean", bins = 35, alpha = .45) + 
       scale_fill_stepsn(
         colors = c("#f5f8ff", "#d6e0ff", "#a1b9ff", "#5580ff", "#0040ff"),
         values = scales::rescale(c(.05, 0.3, 0.5, 0.7, 0.9)),
@@ -64,7 +66,7 @@ catchProbChart <- function(position, X_Cord, Y_Cord, hangTime, outOrHit){
     scale_color_manual(
       name = "\nLegend", 
       values = c(
-        customColors, 
+        customColorsCatchProb, 
         setNames("black", paste(positionName, "Average Starting Position"))
       )
      ) + 
@@ -82,7 +84,8 @@ catchProbChart <- function(position, X_Cord, Y_Cord, hangTime, outOrHit){
       theme(legend.position = c(.99,.02), 
           legend.justification = c(1,0),
           legend.text = element_text(size = 11),
-          legend.title = element_text(size = 14, face = "bold"))
+          legend.title = element_text(size = 14, face = "bold")) + 
+      theme(plot.title = element_text(size = 16, face = "bold", hjust = .5, vjust = .15))
   
   return(p)
 }
