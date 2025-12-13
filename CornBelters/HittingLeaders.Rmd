@@ -1,0 +1,271 @@
+---
+title: ''
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: false
+    output_file: /Users/maxim/Desktop/Kernelytics-Projects/KCL/output.pdf
+geometry: landscape
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{colortbl}
+- \usepackage{subfig}
+- \usepackage{floatrow}
+- \usepackage{sectsty}
+- \usepackage{titlesec}
+- \usepackage{fontspec}
+- \usepackage{float}
+- \geometry{landscape, paperwidth=8in, paperheight=11in,left=0.2cm, right=0.2cm, top=0.5cm, bottom=0.1cm}
+- \renewcommand{\arraystretch}{2}
+
+```{r setup, include=FALSE}
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(readxl)
+library(tidyverse)
+
+rank_colors <- colorRampPalette(c("#E1463E", "white", "#00840D"))(18)
+rank_colors2 <- colorRampPalette(c("#00840D", "white", "#E1463E"))(18)
+
+na_color <- "#D3D3D3"
+
+
+# Generate 18 colors from the gradient
+
+
+# Example data frame (replace with actual data)
+df <- read_csv("/Users/aaronstaehely/Library/CloudStorage/OneDrive-CoastalCarolinaUniversity/Coastal Carolina Baseball Analytics/Trackman CSV's/Live and Intrasquad/combined-lives.csv")
+
+#df <- read_excel("/Users/aaronstaehely/Documents/CCU Analytics/Trackman Files/Fall2024.xlsx")
+
+df <- df %>%
+ filter(
+  BatterTeam == 'COA_CHA' | BatterTeam == 'CCU_PRA'
+)
+
+
+
+df <- df %>%
+  filter(
+    TaggedPitchType != 'Undefined'
+  )
+
+df <- df %>%
+  mutate(
+    WhiffIndicator = ifelse(
+      PitchCall == 'StrikeSwinging',1,0
+    ),
+    StrikeZoneIndicator = ifelse(
+      PlateLocSide >= -0.8333 & PlateLocSide <= 0.8333 & 
+        PlateLocHeight >= 1.5 & PlateLocHeight <= 3.37467, 
+      1, 0),
+    SwingIndicator = ifelse(
+      PitchCall %in% c("StrikeSwinging", "FoulBallNotFieldable", 'FoulBall',"InPlay"), 
+      1, 0),
+  BIPind = ifelse(
+      PitchCall == 'InPlay' & TaggedHitType != 'Bunt', 1, 0
+    )
+)
+
+df <- df %>%
+  mutate(
+    Zwhiffind = ifelse(
+      WhiffIndicator == 1 & StrikeZoneIndicator == 1, 1,0),
+    Zswing = ifelse(
+      StrikeZoneIndicator == 1 & SwingIndicator == 1, 1,0
+    ),
+    LA1030ind = ifelse(PitchCall == 'InPlay' & Angle >= 10 & Angle <= 30, 1,0),
+  Barrelind = ifelse(PitchCall=='InPlay' & ExitSpeed >= 95 & Angle >= 10 & Angle <= 32,1,0),
+  HHind = ifelse(PitchCall == 'InPlay' & ExitSpeed >= 95,1,0),
+  SCind = ifelse(
+      (PitchCall == "InPlay" & 
+         ((ExitSpeed > 95 & Angle >= 0 & Angle <= 35) | 
+            (ExitSpeed > 92 & Angle >= 8 & Angle <= 35))), 1, 0),
+  GBindicator = ifelse(TaggedHitType=='GroundBall',1,0),
+  LDind = ifelse(TaggedHitType == 'LineDrive',1,0),
+  FBind = ifelse(TaggedHitType == 'FlyBall',1,0),
+  Popind = ifelse(TaggedHitType == 'Popup',1,0),
+  Chaseindicator = ifelse(SwingIndicator==1 & StrikeZoneIndicator == 0,1,0),
+  OutofZone = ifelse(StrikeZoneIndicator == 0,1,0)
+  
+  )
+
+df <- df %>%
+  mutate(
+    BatterTeam = ifelse(BatterTeam == 'COA_CHA' | BatterTeam == 'CCU_PRA', 'Coastal',BatterTeam)
+  )
+
+
+
+
+    
+summary_data <- df %>%
+  #filter(
+  #  PitcherThrows == 'Left'
+  #)%>%
+  group_by(Batter) %>%
+  summarize(
+    'Avg EV' = round(mean(ExitSpeed[PitchCall=='InPlay' & TaggedHitType != 'Bunt'],na.rm=T),1),
+    'Max EV' = round(max(ExitSpeed,na.rm=T),1),
+    'SC%' = round(sum(SCind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    '10-30%' = round(sum(LA1030ind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'HH%' = round(sum(HHind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'Barrel%' = round(sum(Barrelind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'Whiff%' = round(sum(WhiffIndicator,na.rm=T)/sum(SwingIndicator,na.rm=T),3)*100,
+    'Z Whiff%' = round(sum(Zwhiffind,na.rm=T)/sum(Zswing,na.rm=T),3)*100,
+    'Chase%' = round(sum(Chaseindicator,na.rm=T)/sum(SwingIndicator,na.rm=T),3)*100,
+    'GB%' = round(sum(GBindicator,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'LD%' = round(sum(LDind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'FB%' = round(sum(FBind, na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'Pop%' = round(sum(Popind,na.rm=T)/sum(BIPind,na.rm=T),3)*100
+    )  
+
+color_by_rank <- function(rank_vector, n_colors) {
+  # Ensure rank_vector is numeric and handle NA and infinite values
+  rank_vector <- as.numeric(rank_vector)
+  rank_vector[!is.finite(rank_vector)] <- NA  # Mark non-finite values as NA
+
+  # Debugging: Print the rank_vector to inspect  # This will help in debugging
+
+  # Handle cases where rank_vector has all NAs
+  if (all(is.na(rank_vector))) {
+    stop("Rank vector has no valid values to process.")
+  }
+
+  # Define breaks for the color scale (ensure breaks are finite)
+  min_rank <- min(rank_vector, na.rm = TRUE)
+  max_rank <- max(rank_vector, na.rm = TRUE)
+  
+  # Check for finite min/max values
+  if (!is.finite(min_rank) | !is.finite(max_rank)) {
+    stop("Rank vector must contain finite values for color mapping.")
+  }
+  
+  # Define breaks
+  breaks <- seq(min_rank, max_rank, length.out = n_colors + 1)
+
+  # Assign colors based on the breaks
+  color_index <- findInterval(rank_vector, breaks, rightmost.closed = TRUE)
+  
+  # Return the corresponding color from the palette
+  rank_colors[color_index]
+}
+
+color_by_rank2 <- function(rank_vector, n_colors) {
+  # Ensure rank_vector is numeric and handle NA and infinite values
+  rank_vector <- as.numeric(rank_vector)
+  rank_vector[!is.finite(rank_vector)] <- NA  # Mark non-finite values as NA
+
+  # Debugging: Print the rank_vector to inspect  # This will help in debugging
+
+  # Handle cases where rank_vector has all NAs
+  if (all(is.na(rank_vector))) {
+    stop("Rank vector has no valid values to process.")
+  }
+
+  # Define breaks for the color scale (ensure breaks are finite)
+  min_rank <- min(rank_vector, na.rm = TRUE)
+  max_rank <- max(rank_vector, na.rm = TRUE)
+  
+  # Check for finite min/max values
+  if (!is.finite(min_rank) | !is.finite(max_rank)) {
+    stop("Rank vector must contain finite values for color mapping.")
+  }
+  
+  # Define breaks
+  breaks <- seq(min_rank, max_rank, length.out = n_colors + 1)
+
+  # Assign colors based on the breaks
+  color_index <- findInterval(rank_vector, breaks, rightmost.closed = TRUE)
+  
+  # Return the corresponding color from the palette
+  rank_colors2[color_index]
+}
+
+summary_data3 <- summary_data %>%
+arrange(desc(`Avg EV`)) %>%
+ mutate(
+    Rank_AvgVelo = rank(`Avg EV`),
+    Rank_Velo = rank(`Max EV`),
+    Rank_SC = rank(`SC%`),
+    Rank_swsp = rank(`10-30%`),
+    Rankhh = rank(`HH%`),
+    Rankbarrell = rank(`Barrel%`),
+    RankWhiff = rank(`Whiff%`),
+    RankZWhiff =rank(`Z Whiff%`),
+    RankChase = rank(`Chase%`),
+    RankGB = rank(`GB%`),
+    RankLD = rank(`LD%`),
+    RankFB = rank(`FB%`),
+    RankPU = rank(`Pop%`)
+  )
+```
+\begin{center}
+\CoastalFont\textbf{\Large Advanced Offensive Statistics}
+\end{center}
+
+\vspace{-1cm}
+\includegraphics[width = 2cm, height = 2cm]{Chant Hat Logo}
+\vspace{-0.8cm}
+\hfill
+\includegraphics[width = 2.5cm, height = 1.5cm]{Own It Bronze}
+\begin{center}
+\end{center}
+
+```{r leaderboard, echo=F,warning=F,message=F}
+
+# Render table
+
+
+summary_data %>%
+  arrange(desc(`Avg EV`)) %>%
+  kable(table.envir = 'NewFont', format = "latex", linesep = "", label = "Leaderboard")%>%
+  kable_styling(latex_options = c('scale_down', "hold_position"))%>%
+  column_spec(1, bold = TRUE, border_left = TRUE, color = "black")%>%
+  column_spec(2, bold = TRUE, background = color_by_rank(summary_data3$Rank_AvgVelo,18))%>%
+  column_spec(3, bold = TRUE, background = color_by_rank(summary_data3$Rank_Velo,18))%>%
+  column_spec(4, bold = TRUE, background = color_by_rank(summary_data3$Rank_SC,18))%>%
+  column_spec(5, bold = TRUE, background = color_by_rank(summary_data3$Rank_swsp,18))%>%
+  column_spec(6, bold = TRUE, background = color_by_rank(summary_data3$Rankhh,18))%>%
+  column_spec(7, bold = TRUE, background = color_by_rank(summary_data3$Rankbarrell,18))%>%
+  column_spec(8, bold = TRUE, background = color_by_rank2(summary_data3$RankWhiff,18))%>%
+  column_spec(9, bold = TRUE, background = color_by_rank2(summary_data3$RankZWhiff,18))%>%
+  column_spec(10, bold = TRUE, background = color_by_rank2(summary_data3$RankChase,18))%>%
+  column_spec(11, bold = TRUE, background = color_by_rank2(summary_data3$RankGB,18))%>%
+  column_spec(12, bold = TRUE, background = color_by_rank(summary_data3$RankLD,18))%>%
+  column_spec(13, bold = TRUE, background = color_by_rank(summary_data3$RankFB,18))%>%
+  column_spec(14, bold = TRUE, background = color_by_rank2(summary_data3$RankPU,18))%>%
+  row_spec(row = 0, color = "white", background = "#006F71") %>%
+  column_spec(ncol(summary_data), border_right = TRUE)
+
+```
+\vspace{-5mm}
+```{r team, echo=F,warning=F,message=F}
+summary_data6 <- df %>%
+  #filter(PitcherThrows == 'Left')%>%
+  group_by(BatterTeam) %>%
+  summarize(
+    'Avg EV' = round(mean(ExitSpeed[PitchCall=='InPlay'],na.rm=T),1),
+    'Max EV' = round(max(ExitSpeed,na.rm=T),1),
+    'SC%' = round(sum(SCind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    '10-30%' = round(sum(LA1030ind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'HH%' = round(sum(HHind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'Barrel%' = round(sum(Barrelind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'Whiff%' = round(sum(WhiffIndicator,na.rm=T)/sum(SwingIndicator,na.rm=T),3)*100,
+    'Z Whiff%' = round(sum(Zwhiffind,na.rm=T)/sum(Zswing,na.rm=T),3)*100,
+    'Chase%' = round(sum(Chaseindicator,na.rm=T)/sum(SwingIndicator,na.rm=T),3)*100,
+    'GB%' = round(sum(GBindicator,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'LD%' = round(sum(LDind,na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'FB%' = round(sum(FBind, na.rm=T)/sum(BIPind,na.rm=T),3)*100,
+    'Pop%' = round(sum(Popind,na.rm=T)/sum(BIPind,na.rm=T),3)*100
+    )  
+
+summary_data6 %>%
+  kable(table.envir = 'NewFont', format = "latex", linesep = "", label = "Leaderboard")%>%
+  kable_styling(latex_options = c('scale_down', "hold_position"))%>%
+  column_spec(1, bold = TRUE, border_left = TRUE, color = "black")%>%
+  row_spec(row = 0, color = "white", background = "#006F71") %>%
+  column_spec(ncol(summary_data6), border_right = TRUE)
+
+```
